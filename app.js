@@ -8,6 +8,7 @@ const STORAGE_KEY = 'semeur_harvest_sessions_v1';
 const state = {
   sessionId: '',
   dateStr: '',
+  displayDateStr: '', // Format JJ/MM/AAAA
   timeStr: '',
   gps: { lat: null, lng: null, acc: null, alt: null, status: 'idle', error: '', commune: null },
   currentObjective: 'VL',
@@ -20,7 +21,7 @@ const state = {
 // ==========================================================================
 
 function initApp() {
-  initNewSession();
+  window.initNewSession();
   bindEvents();
   updateNetworkStatus();
   updateSessionsCountBadge();
@@ -33,15 +34,20 @@ function generateSessionId() {
   return `REC-${ymd}-${rand}`;
 }
 
-function initNewSession() {
+window.initNewSession = function() {
   const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+
   state.sessionId = generateSessionId();
-  state.dateStr = now.toISOString().split('T')[0];
+  state.dateStr = `${yyyy}-${mm}-${dd}`;
+  state.displayDateStr = `${dd}/${mm}/${yyyy}`;
   state.timeStr = now.toTimeString().substring(0, 5);
 
   const displayDate = document.getElementById('display-date');
   const displayTime = document.getElementById('display-time');
-  if (displayDate) displayDate.textContent = state.dateStr;
+  if (displayDate) displayDate.textContent = state.displayDateStr;
   if (displayTime) displayTime.textContent = state.timeStr;
 
   const lieuDitInput = document.getElementById('input-lieudit');
@@ -80,10 +86,9 @@ function initNewSession() {
 
   updateDynamicQuantite('Graines');
   setIndividusCount(1);
-  hideSuccessBanner();
+  window.hideSuccessBanner();
   hideErrorBanner();
   
-  // Variables photo réinitialisées
   currentPhotoData = null;
   currentPhotoCoords = null;
   const photoPreview = document.getElementById('photo-preview');
@@ -93,8 +98,10 @@ function initNewSession() {
   if (photoContainer) photoContainer.style.display = 'none';
   if (photoInput) photoInput.value = '';
 
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   acquireGpsLocation();
-}
+};
 
 // ==========================================================================
 // 2. GÉOLOCALISATION GPS
@@ -206,13 +213,12 @@ async function reverseGeocode(lat, lng) {
 }
 
 // ==========================================================================
-// 3. LOGIQUE CONDITIONNELLE ESPÈCES & MFR
+// 3. LOGIQUE CONDITIONNELLE ESPÈCES & MFR INTELLIGENT
 // ==========================================================================
 
 function onSpeciesChanged(selectElement) {
   const selectedOption = selectElement.options[selectElement.selectedIndex];
   const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
-  const speciesName = selectedOption ? selectedOption.value : '';
 
   const cardMfr = document.getElementById('card-reg-mfr');
   const cardBoth = document.getElementById('card-reg-both');
@@ -231,20 +237,25 @@ function onSpeciesChanged(selectElement) {
     if (cardBoth) cardBoth.classList.remove('disabled');
     if (lockedBadge) lockedBadge.style.display = 'none';
     if (noticeVl) noticeVl.style.display = 'none';
-    autoSelectMfrCategory(speciesName);
+    
+    // On passe directement l'option sélectionnée pour lire sa catégorie MFR
+    autoSelectMfrCategory(selectedOption);
   }
 }
 
-function autoSelectMfrCategory(speciesName) {
-  let defaultCategory = 'Identifiée';
-  if (['Quercus petraea', 'Quercus robur', 'Fagus sylvatica', 'Prunus avium'].includes(speciesName)) {
-    defaultCategory = 'Sélectionnée';
-  }
+function autoSelectMfrCategory(selectedOption) {
+  if (!selectedOption) return;
+  
+  // Lit l'attribut dans le HTML, ou met "Identifiée" par défaut si non trouvé
+  const defaultCategory = selectedOption.getAttribute('data-mfr-cat') || 'Identifiée';
+  
   document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-value') === defaultCategory);
   });
+  
   const hiddenMfrCat = document.getElementById('input-mfr-cat');
   if (hiddenMfrCat) hiddenMfrCat.value = defaultCategory;
+  
   const selectedMfrText = document.getElementById('selected-mfr-text');
   if (selectedMfrText) selectedMfrText.textContent = 'Sélectionné : ' + defaultCategory;
 }
@@ -355,22 +366,67 @@ function setIndividusCount(val) {
 }
 
 // ==========================================================================
-// 6. SAUVEGARDE & LOCAL STORAGE
+// 6. SAUVEGARDE JSON EXHAUSTIVE & LOCAL STORAGE
 // ==========================================================================
 
 function validateAndSaveSession() {
   hideErrorBanner();
-  hideSuccessBanner();
+  window.hideSuccessBanner();
 
   const errors = [];
   const speciesSelect = document.getElementById('species-select');
   const species = speciesSelect ? speciesSelect.value : '';
   const lieuDit = document.getElementById('input-lieudit').value.trim();
   const altitudeStr = document.getElementById('input-altitude').value.trim();
+  const materielType = document.getElementById('input-materiel-type').value;
+
+  const quantiteInput = document.getElementById('input-quantite');
+  const quantiteStr = quantiteInput ? quantiteInput.value.trim() : '';
+  const quantiteVal = quantiteStr !== '' ? Number(quantiteStr) : null;
+
+  const poidsInput = document.getElementById('input-poids-g');
+  const poidsStr = poidsInput ? poidsInput.value.trim() : '';
+  const poidsVal = poidsStr !== '' ? Number(poidsStr) : null;
   
   if (!species) errors.push("L'espèce ciblée est obligatoire.");
   if (!lieuDit) errors.push('Le champ Commune / Lieu-dit de récolte est obligatoire.');
   if (!altitudeStr || isNaN(Number(altitudeStr))) errors.push("L'altitude en mètres est obligatoire.");
+
+  const isCornus = species.includes('Cornus sanguinea');
+  const effectiveObjective = isCornus ? 'VL' : state.currentObjective;
+  const isVLActive = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
+  const isMFRActive = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
+
+  let eunisHabitat = '';
+  let ph = '';
+  let humidite = '';
+  let nbIndividus = 0;
+  let prelevement25 = false;
+
+  if (isVLActive) {
+    eunisHabitat = document.getElementById('select-eunis').value;
+    ph = document.getElementById('input-ph').value;
+    humidite = document.getElementById('input-humidity').value;
+    nbIndividus = parseInt(document.getElementById('input-individus').value, 10) || 0;
+    prelevement25 = document.getElementById('chk-25').checked;
+
+    if (!eunisHabitat) errors.push("Le type d'habitat EUNIS (milieu de collecte) est obligatoire pour Végétal Local.");
+    if (!ph) errors.push('Le pH du sol estimé est requis pour Végétal Local.');
+    if (!humidite) errors.push("L'humidité du sol est requise pour Végétal Local.");
+    if (nbIndividus < 1) errors.push("Le nombre d'individus collectés doit être au moins de 1.");
+    if (!prelevement25) errors.push('Vous devez certifier ne pas avoir prélevé plus de 25% de la ressource (Charte Végétal Local).');
+  }
+
+  let categorieMFR = '';
+  let codePeuplement = '';
+
+  if (isMFRActive) {
+    categorieMFR = document.getElementById('input-mfr-cat').value;
+    codePeuplement = document.getElementById('input-peuplement').value.trim();
+
+    if (!categorieMFR) errors.push('La catégorie MFR est obligatoire.');
+    if (!codePeuplement) errors.push('Le code du peuplement de base est obligatoire (ex: FR-XX-YY).');
+  }
 
   if (errors.length > 0) {
     showErrorBanner(errors);
@@ -378,20 +434,67 @@ function validateAndSaveSession() {
     return;
   }
 
+  const labelQuantiteEl = document.getElementById('label-quantite');
+
   const payload = {
+    schemaVersion: '1.2.0',
     sessionId: state.sessionId,
     timestamp: `${state.dateStr}T${state.timeStr}:00`,
-    species: { label: species, scientificName: species.split('(')[0].trim() },
+    collectedAt: {
+      date: state.displayDateStr,
+      time: state.timeStr,
+      iso: new Date().toISOString()
+    },
     geolocation: {
       latitude: state.gps.lat,
       longitude: state.gps.lng,
+      accuracyMeters: state.gps.acc,
       altitudeGps: state.gps.alt,
+      status: state.gps.status,
       commune: state.gps.commune || lieuDit,
     },
+    species: {
+      label: species,
+      scientificName: species.split('(')[0].trim(),
+    },
+    regulation: {
+      selectedObjective: effectiveObjective,
+      appliedRegulations: [
+        ...(isVLActive ? ['Végétal Local (VL)'] : []),
+        ...(isMFRActive ? ['Matériel Forestier de Reproduction (MFR)'] : []),
+      ],
+    },
+    quantite: quantiteVal,
+    poids_g: poidsVal,
+    troncCommun: {
+      communeLieuDit: lieuDit,
+      altitudeMeters: Number(altitudeStr),
+      materielType: materielType,
+      quantite: quantiteVal,
+      quantiteLibelle: labelQuantiteEl ? labelQuantiteEl.textContent : 'Quantité récoltée',
+      poids_g: poidsVal,
+    },
+    vegetalLocal: isVLActive ? {
+      eunisHabitat: eunisHabitat,
+      conditionsEcologiques: {
+        ph: ph,
+        humidite: humidite,
+      },
+      nbIndividusCollectes: nbIndividus,
+      confirmation25PourcentMax: prelevement25,
+    } : null,
+    mfr: isMFRActive ? {
+      categorieMFR: categorieMFR,
+      codePeuplementBase: codePeuplement.toUpperCase(),
+    } : null,
     photoStation: {
       image: currentPhotoData || null,
       coordonnees: currentPhotoCoords || null,
       dateCapture: new Date().toISOString()
+    },
+    sync: {
+      status: 'pending',
+      savedLocallyAt: new Date().toISOString(),
     }
   };
 
@@ -420,29 +523,34 @@ function saveSessionToLocalStorage(payload) {
 // ==========================================================================
 
 function bindEvents() {
-  // Gérer la photo
+  // Délégation globale pour les clics du bandeau de succès
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'btn-dismiss-alert') {
+      window.hideSuccessBanner();
+    }
+    if (e.target.id === 'btn-alert-new' || e.target.id === 'btn-new-session') {
+      window.initNewSession();
+    }
+  });
+
   const photoInput = document.getElementById('station-photo');
   if (photoInput) photoInput.addEventListener('change', handlePhotoCapture);
 
-  // Gérer l'espèce
   const speciesSelect = document.getElementById('species-select');
   if (speciesSelect) {
     speciesSelect.addEventListener('change', (e) => onSpeciesChanged(e.target));
   }
 
-  // Gérer les radios réglementaires
   document.querySelectorAll('input[name="regulatoryObjective"]').forEach(radio => {
     radio.addEventListener('change', (e) => setRegulatoryObjective(e.target.value));
   });
 
-  // GPS
   const btnRefreshGps = document.getElementById('btn-refresh-gps');
   if (btnRefreshGps) btnRefreshGps.addEventListener('click', acquireGpsLocation);
 
   const btnSimulateGps = document.getElementById('btn-simulate-gps');
   if (btnSimulateGps) btnSimulateGps.addEventListener('click', simulateGpsLocation);
 
-  // Type de matériel
   const selectMateriel = document.getElementById('select-materiel-type');
   if (selectMateriel) {
     selectMateriel.addEventListener('change', (e) => {
@@ -461,7 +569,6 @@ function bindEvents() {
     });
   });
 
-  // PH et Humidité
   document.querySelectorAll('#ph-group .btn-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#ph-group .btn-toggle').forEach(b => b.classList.remove('active'));
@@ -480,7 +587,6 @@ function bindEvents() {
     });
   });
 
-  // Compteur d'individus
   const btnMinus = document.getElementById('btn-minus-ind');
   if (btnMinus) btnMinus.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 1) - 1));
   
@@ -496,7 +602,6 @@ function bindEvents() {
   const btnSet30 = document.getElementById('btn-set-30');
   if (btnSet30) btnSet30.addEventListener('click', () => setIndividusCount(30));
 
-  // Catégories MFR
   document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(b => b.classList.remove('active'));
@@ -506,12 +611,8 @@ function bindEvents() {
     });
   });
 
-  // Boutons de sauvegarde et modales
   const btnSave = document.getElementById('btn-save-session');
   if (btnSave) btnSave.addEventListener('click', validateAndSaveSession);
-
-  const btnNew = document.getElementById('btn-new-session');
-  if (btnNew) btnNew.addEventListener('click', initNewSession);
 
   const btnOpenHistory = document.getElementById('btn-open-history');
   if (btnOpenHistory) btnOpenHistory.addEventListener('click', openSessionsDrawer);
@@ -567,19 +668,22 @@ function renderSessionsList() {
     return;
   }
 
-  container.innerHTML = sessions.map(s => `
-    <div style="background:#f9f9f9; border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <strong>${s.sessionId}</strong>
-        <span style="font-size:0.85rem; color:#666;">${s.timestamp}</span>
+  container.innerHTML = sessions.map(s => {
+    const dateAffichee = s.collectedAt && s.collectedAt.date ? s.collectedAt.date : s.timestamp;
+    return `
+      <div style="background:#f9f9f9; border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>${s.sessionId}</strong>
+          <span style="font-size:0.85rem; color:#666;">${dateAffichee}</span>
+        </div>
+        <p style="margin: 5px 0; font-size: 0.9rem;">🌱 <strong>${s.species.label}</strong></p>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button type="button" class="btn-small btn-primary-mini" onclick="window.viewSessionJson('${s.sessionId}')">📄 Voir JSON</button>
+          <button type="button" class="btn-small" style="color:#d9534f;" onclick="window.deleteSessionRecord('${s.sessionId}')">🗑️ Supprimer</button>
+        </div>
       </div>
-      <p style="margin: 5px 0; font-size: 0.9rem;">🌱 <strong>${s.species.label}</strong></p>
-      <div style="display:flex; gap:8px; margin-top:8px;">
-        <button type="button" class="btn-small btn-primary-mini" onclick="window.viewSessionJson('${s.sessionId}')">📄 Voir JSON</button>
-        <button type="button" class="btn-small" style="color:#d9534f;" onclick="window.deleteSessionRecord('${s.sessionId}')">🗑️ Supprimer</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 window.viewSessionJson = function(sessionId) {
@@ -612,7 +716,13 @@ function exportAllSessionsJson() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `sessions-recolte-${new Date().toISOString().split('T')[0]}.json`;
+  
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  
+  a.download = `sessions-recolte-${dd}-${mm}-${yyyy}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -648,7 +758,10 @@ function showSuccessBanner(id) {
   if (banner) banner.style.display = 'block';
 }
 
-function hideSuccessBanner() { if (document.getElementById('success-banner')) document.getElementById('success-banner').style.display = 'none'; }
+window.hideSuccessBanner = function() { 
+  const banner = document.getElementById('success-banner');
+  if (banner) banner.style.display = 'none'; 
+};
 
 function showErrorBanner(errors) {
   const banner = document.getElementById('error-banner');
