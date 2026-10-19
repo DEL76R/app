@@ -57,7 +57,6 @@
           <span>⏳ File d'attente prête</span>
         </div>
         <div class="alert-buttons">
-          <button type="button" id="btn-view-last-json" class="btn-secondary-white">Voir le JSON généré</button>
           <button type="button" id="btn-alert-new" class="btn-primary-white">Nouvelle session</button>
         </div>
       </div>
@@ -137,83 +136,43 @@
           </div>
         </div>
 
-       <div class="form-group">
-  <label for="species-select" class="form-label">
-    Espèce ciblée <span class="req">*</span>
-  </label>
-  <select id="species-select" class="form-control select-large" onchange="onSpeciesChanged(this)">
-    <option value="" disabled selected>-- Sélectionnez une essence --</option>
-    
-    <!-- Érables -->
-    <option value="Acer campestre" data-regime="both">Érable champêtre (Acer campestre)</option>
-    <option value="Acer monspessulanum" data-regime="both">Érable de Montpellier (Acer monspessulanum)</option>
-    <option value="Acer platanoides" data-regime="both">Érable plane (Acer platanoides)</option>
-    <option value="Acer pseudoplatanus" data-regime="both">Érable sycomore (Acer pseudoplatanus)</option>
-    
-    <!-- Aulne -->
-    <option value="Alnus glutinosa" data-regime="both">Aulne glutineux (Alnus glutinosa)</option>
-    
-    <!-- Charme -->
-    <option value="Carpinus betulus" data-regime="both">Charme (Carpinus betulus)</option>
-    
-    <!-- Cornouillers -->
-    <option value="Cornus mas" data-regime="vl">Cornouiller mâle (Cornus mas)</option>
-    <option value="Cornus sanguinea" data-regime="vl">Cornouiller sanguin (Cornus sanguinea)</option>
-    
-    <!-- Noisetier -->
-    <option value="Corylus avellana" data-regime="vl">Noisetier (Corylus avellana)</option>
-    
-    <!-- Aubépine -->
-    <option value="Crataegus monogyna" data-regime="vl">Aubépine à un style (Crataegus monogyna)</option>
-    
-    <!-- Fusain -->
-    <option value="Euonymus europaeus" data-regime="vl">Fusain d’Europe (Euonymus europaeus)</option>
-    
-    <!-- Hêtre -->
-    <option value="Fagus sylvatica" data-regime="both">Hêtre (Fagus sylvatica)</option>
-    
-    <!-- Frêne -->
-    <option value="Fraxinus excelsior" data-regime="both">Frêne commun (Fraxinus excelsior)</option>
-    
-    <!-- Houx -->
-    <option value="Ilex aquifolium" data-regime="vl">Houx (Ilex aquifolium)</option>
-    
-    <!-- Troène -->
-    <option value="Ligustrum vulgare" data-regime="vl">Troène (Ligustrum vulgare)</option>
-    
-    <!-- Pommier & Poirier -->
-    <option value="Malus sylvestris" data-regime="both">Pommier sauvage (Malus sylvestris)</option>
-    <option value="Pyrus communis" data-regime="both">Poirier commun (Pyrus communis)</option>
-    
-    <!-- Prunus -->
-    <option value="Prunus avium" data-regime="both">Merisier (Prunus avium)</option>
-    <option value="Prunus spinosa" data-regime="vl">Prunellier (Prunus spinosa)</option>
-    
-    <!-- Chênes -->
-    <option value="Quercus petraea" data-regime="both">Chêne sessile (Quercus petraea)</option>
-    <option value="Quercus robur" data-regime="both">Chêne pédonculé (Quercus robur)</option>
-    
-    <!-- Nerprun -->
-    <option value="Rhamnus cathartica" data-regime="vl">Nerprun officinal (Rhamnus cathartica)</option>
-    
-    <!-- Groseillier -->
-    <option value="Ribes rubrum" data-regime="vl">Groseillier (Ribes rubrum)</option>
-    
-    <!-- Rosier -->
-    <option value="Rosa canina" data-regime="vl">Rosier des chiens (Rosa canina)</option>
-    
-    <!-- Sureau -->
-    <option value="Sambucus nigra" data-regime="vl">Sureau noir (Sambucus nigra)</option>
-    
-    <!-- Sorbiers & Alisier -->
-    <option value="Sorbus aucuparia" data-regime="both">Sorbier des oiseleurs (Sorbus aucuparia)</option>
-    <option value="Sorbus torminalis" data-regime="both">Alisier torminal (Sorbus torminalis)</option>
-    
-    <!-- Tilleuls -->
-    <option value="Tilia cordata" data-regime="both">Tilleul à petites feuilles (Tilia cordata)</option>
-    <option value="Tilia platyphyllos" data-regime="both">Tilleul à grandes feuilles (Tilia platyphyllos)</option>
-  </select>
-</div>
+        <div class="form-group">
+          <label for="species-select" class="form-label">
+            Espèce ciblée <span class="req">*</span>
+          </label>
+          <select id="species-select" class="form-control select-large" onchange="onSpeciesChanged(this)">
+            <option value="" disabled selected>-- Sélectionnez une essence --</option>
+            <option value="Acer campestre" data-regime="both">Érable champêtre (Acer campestre)</option>
+            <option value="Acer monspessulanum" data-regime="both">Érable de Montpellier (Acer monspessulanum)</option>
+            <option value="Acer platanoides" data-regime="both">Érable plane (Acer platanoides)</option>
+            <option value="Acer pseudoplatanus" data-regime="both">Érable sycomore (Acer pseudoplatanus)</option>
+            <option value="Alnus glutinosa" data-regime="both">Aulne glutineux (Alnus glutinosa)</option>
+            <option value="Carpinus betulus" data-regime="both">Charme (Carpinus betulus)</option>
+            <option value="Cornus mas" data-regime="vl">Cornouiller mâle (Cornus mas)</option>
+            <option value="Cornus sanguinea" data-regime="vl">Cornouiller sanguin (Cornus sanguinea)</option>
+            <option value="Corylus avellana" data-regime="vl">Noisetier (Corylus avellana)</option>
+            <option value="Crataegus monogyna" data-regime="vl">Aubépine à un style (Crataegus monogyna)</option>
+            <option value="Euonymus europaeus" data-regime="vl">Fusain d’Europe (Euonymus europaeus)</option>
+            <option value="Fagus sylvatica" data-regime="both">Hêtre (Fagus sylvatica)</option>
+            <option value="Fraxinus excelsior" data-regime="both">Frêne commun (Fraxinus excelsior)</option>
+            <option value="Ilex aquifolium" data-regime="vl">Houx (Ilex aquifolium)</option>
+            <option value="Ligustrum vulgare" data-regime="vl">Troène (Ligustrum vulgare)</option>
+            <option value="Malus sylvestris" data-regime="both">Pommier sauvage (Malus sylvestris)</option>
+            <option value="Pyrus communis" data-regime="both">Poirier commun (Pyrus communis)</option>
+            <option value="Prunus avium" data-regime="both">Merisier (Prunus avium)</option>
+            <option value="Prunus spinosa" data-regime="vl">Prunellier (Prunus spinosa)</option>
+            <option value="Quercus petraea" data-regime="both">Chêne sessile (Quercus petraea)</option>
+            <option value="Quercus robur" data-regime="both">Chêne pédonculé (Quercus robur)</option>
+            <option value="Rhamnus cathartica" data-regime="vl">Nerprun officinal (Rhamnus cathartica)</option>
+            <option value="Ribes rubrum" data-regime="vl">Groseillier (Ribes rubrum)</option>
+            <option value="Rosa canina" data-regime="vl">Rosier des chiens (Rosa canina)</option>
+            <option value="Sambucus nigra" data-regime="vl">Sureau noir (Sambucus nigra)</option>
+            <option value="Sorbus aucuparia" data-regime="both">Sorbier des oiseleurs (Sorbus aucuparia)</option>
+            <option value="Sorbus torminalis" data-regime="both">Alisier torminal (Sorbus torminalis)</option>
+            <option value="Tilia cordata" data-regime="both">Tilleul à petites feuilles (Tilia cordata)</option>
+            <option value="Tilia platyphyllos" data-regime="both">Tilleul à grandes feuilles (Tilia platyphyllos)</option>
+          </select>
+        </div>
 
         <!-- Bloc radio pour l'objectif réglementaire -->
         <div class="form-group regulatory-block">
@@ -263,29 +222,28 @@
         </div>
       </section>
 
-<!-- Module Photo Géolocalisée -->
-<div class="card">
-  <div class="card-header">
-    <div class="card-icon">📸</div>
-    <div>
-      <h2>Photo de la Station / Peuplement</h2>
-      <p class="card-sub">Capture photo avec géolocalisation automatique</p>
-    </div>
-  </div>
+      <!-- Module Photo Géolocalisée -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📸</div>
+          <div>
+            <h2>Photo de la Station / Peuplement</h2>
+            <p class="card-sub">Capture photo avec géolocalisation automatique</p>
+          </div>
+        </div>
 
-  <div class="form-group">
-    <label for="station-photo" class="form-label">Prendre ou importer une photo</label>
-    <input type="file" id="station-photo" accept="image/*" capture="environment" class="form-control" onchange="handlePhotoCapture(event)">
-    
-    <!-- Zone de prévisualisation de la photo -->
-    <div id="photo-preview-container" style="margin-top: 15px; display: none; text-align: center;">
-      <img id="photo-preview" src="" alt="Aperçu station" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #ccc;">
-      <p id="photo-gps-info" style="font-size: 0.9rem; color: #666; margin-top: 5px;"></p>
-    </div>
-  </div>
-</div>
+        <div class="form-group">
+          <label for="station-photo" class="form-label">Prendre ou importer une photo</label>
+          <input type="file" id="station-photo" accept="image/*" capture="environment" class="form-control" onchange="handlePhotoCapture(event)">
+          
+          <div id="photo-preview-container" style="margin-top: 15px; display: none; text-align: center;">
+            <img id="photo-preview" src="" alt="Aperçu station" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #ccc;">
+            <p id="photo-gps-info" style="font-size: 0.9rem; color: #666; margin-top: 5px;"></p>
+          </div>
+        </div>
+      </div>
 
-      <!-- 3. TRONC COMMUN (TOUJOURS AFFICHÉ) -->
+      <!-- 3. TRONC COMMUN -->
       <section class="card card-common">
         <div class="card-header">
           <div class="card-icon card-icon-amber">📦</div>
@@ -295,7 +253,6 @@
           </div>
         </div>
 
-        <!-- Commune / Lieu-dit avec Géocodage automatique -->
         <div class="form-group">
           <label for="input-lieudit" class="form-label" id="label-lieudit">
             Commune / Lieu-dit <span class="req">*</span>
@@ -304,7 +261,6 @@
           <p id="lieudit-hint" class="field-hint" style="display: none;"></p>
         </div>
 
-        <!-- Altitude -->
         <div class="form-group">
           <div class="label-with-action">
             <label for="input-altitude" class="form-label">
@@ -320,7 +276,6 @@
           </div>
         </div>
 
-        <!-- Type de matériel (Menu déroulant existant) -->
         <div class="form-group">
           <label for="select-materiel-type" class="form-label" id="label-materiel-type">
             Type de matériel <span class="req">*</span>
@@ -338,7 +293,6 @@
           <input type="hidden" id="input-materiel-type" value="Graines">
         </div>
 
-        <!-- Quantité récoltée (dynamique selon Type de matériel, strictement optionnel) -->
         <div class="form-group">
           <div class="label-with-action">
             <label for="input-quantite" class="form-label" id="label-quantite">Quantité récoltée</label>
@@ -347,7 +301,6 @@
           <input type="number" id="input-quantite" step="any" min="0" class="form-control" placeholder="Quantité de graines (Optionnel)">
         </div>
 
-        <!-- Poids récolté (g) (strictement optionnel, unité en gramme) -->
         <div class="form-group">
           <div class="label-with-action">
             <label for="input-poids-g" class="form-label" id="label-poids-g">Poids récolté (g)</label>
@@ -361,7 +314,7 @@
         </div>
       </section>
 
-      <!-- 4. SI VÉGÉTAL LOCAL EST SÉLECTIONNÉ (VERT CLAIR) -->
+      <!-- 4. VOLET VÉGÉTAL LOCAL -->
       <section id="section-vl" class="card card-vl">
         <div class="card-header">
           <div class="card-icon card-icon-vl">🌿</div>
@@ -372,7 +325,6 @@
           <span class="badge-vl">Charte Biodiversité</span>
         </div>
 
-        <!-- Type d'habitat EUNIS (avec Bord de route & Milieu urbain) -->
         <div class="form-group">
           <label for="select-eunis" class="form-label">
             Type d'habitat EUNIS (Milieu de collecte) <span class="req">*</span>
@@ -389,7 +341,6 @@
           </select>
         </div>
 
-        <!-- Conditions écologiques : pH & Humidité -->
         <div class="subcard">
           <span class="form-label">CONDITIONS ÉCOLOGIQUES DU SOL</span>
 
@@ -420,7 +371,6 @@
           </div>
         </div>
 
-        <!-- Nombre d'individus collectés (Compteur +/- démarrant à 1) -->
         <div class="subcard">
           <div class="counter-header">
             <div>
@@ -448,11 +398,10 @@
           </div>
 
           <div class="reminder-box">
-            ⚠️ <strong>Rappel : 30 individus minimum au global pour valider un lot</strong> (30 minimum requis au global)
+            ⚠️ <strong>Rappel : 30 individus minimum au global pour valider un lot</strong>
           </div>
         </div>
 
-        <!-- Case à cocher obligatoire : 25% max de la ressource -->
         <div class="checkbox-card" id="checkbox-25-container">
           <label class="custom-checkbox">
             <input type="checkbox" id="chk-25" checked>
@@ -465,7 +414,7 @@
         </div>
       </section>
 
-      <!-- 5. SI MFR EST SÉLECTIONNÉ (BLEU FORÊT) -->
+      <!-- 5. VOLET MFR -->
       <section id="section-mfr" class="card card-mfr" style="display: none;">
         <div class="card-header">
           <div class="card-icon card-icon-mfr">🌲</div>
@@ -476,7 +425,6 @@
           <span class="badge-mfr">Code Forestier</span>
         </div>
 
-        <!-- Catégorie MFR -->
         <div class="form-group">
           <div class="label-with-action">
             <span class="form-label">Catégorie MFR officielle <span class="req">*</span></span>
@@ -504,7 +452,6 @@
           <input type="hidden" id="input-mfr-cat" value="Identifiée">
         </div>
 
-        <!-- Code du peuplement de base -->
         <div class="form-group">
           <div class="label-with-action">
             <label for="input-peuplement" class="form-label">
@@ -525,7 +472,6 @@
     </form>
   </main>
 
-  <!-- BARRE D'ACTION FLOTTANTE EN BAS (POUR GANTS / TERRAIN) -->
   <footer class="floating-bar">
     <div class="floating-bar-inner">
       <button type="button" id="btn-save-session" class="btn-save-floating">
@@ -533,44 +479,6 @@
       </button>
     </div>
   </footer>
-
-  <!-- MODAL / TIROIR DE CONSULTATION DES SESSIONS LOCALES -->
-  <div id="drawer-sessions" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-header-title">
-          <span class="modal-icon">📂</span>
-          <div>
-            <h3>Sessions Hors-Ligne Enregistrées (<span id="modal-sessions-count">0</span>)</h3>
-            <p>Stockées dans le LocalStorage de ce navigateur</p>
-          </div>
-        </div>
-        <button type="button" id="btn-close-drawer" class="btn-icon-close">×</button>
-      </div>
-
-      <div class="modal-body" id="sessions-list-container">
-        <!-- Rempli dynamiquement par app.js -->
-      </div>
-
-      <!-- Inspecteur JSON intégré -->
-      <div id="json-viewer-box" class="json-inspector" style="display: none;">
-        <div class="json-header">
-          <strong id="json-title">JSON Structuré</strong>
-          <div class="json-actions">
-            <button type="button" id="btn-copy-json" class="btn-small">📋 Copier</button>
-            <button type="button" id="btn-download-json" class="btn-small btn-primary-mini">⬇️ Télécharger .json</button>
-            <button type="button" id="btn-close-json" class="btn-small">Fermer JSON</button>
-          </div>
-        </div>
-        <pre id="json-content"></pre>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="btn-export-all" class="btn-secondary-action">Tout exporter (.json)</button>
-        <button type="button" id="btn-drawer-ok" class="btn-primary-action">Fermer</button>
-      </div>
-    </div>
-  </div>
 
   <script src="./app.js"></script>
 </body>
