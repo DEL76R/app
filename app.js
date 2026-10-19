@@ -49,8 +49,10 @@ function initNewSession() {
   state.dateStr = now.toISOString().split('T')[0];
   state.timeStr = now.toTimeString().substring(0, 5);
 
-  document.getElementById('display-date').textContent = state.dateStr;
-  document.getElementById('display-time').textContent = state.timeStr;
+  const displayDate = document.getElementById('display-date');
+  const displayTime = document.getElementById('display-time');
+  if (displayDate) displayDate.textContent = state.dateStr;
+  if (displayTime) displayTime.textContent = state.timeStr;
 
   // Réinitialisation du champ Commune / Lieu-dit et de son aide
   const lieuDitInput = document.getElementById('input-lieudit');
@@ -119,17 +121,23 @@ function acquireGpsLocation() {
   if (!navigator.geolocation) {
     state.gps.status = 'error';
     state.gps.error = 'Géolocalisation non supportée par ce terminal.';
-    badge.className = 'badge-gps badge-gps-err';
-    badge.textContent = 'GPS non supporté';
-    msgEl.textContent = state.gps.error;
-    msgEl.style.display = 'block';
+    if (badge) {
+      badge.className = 'badge-gps badge-gps-err';
+      badge.textContent = 'GPS non supporté';
+    }
+    if (msgEl) {
+      msgEl.textContent = state.gps.error;
+      msgEl.style.display = 'block';
+    }
     return;
   }
 
   state.gps.status = 'acquiring';
-  badge.className = 'badge-gps badge-gps-acquiring';
-  badge.textContent = 'Recherche satellite...';
-  msgEl.style.display = 'none';
+  if (badge) {
+    badge.className = 'badge-gps badge-gps-acquiring';
+    badge.textContent = 'Recherche satellite...';
+  }
+  if (msgEl) msgEl.style.display = 'none';
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -144,8 +152,9 @@ function acquireGpsLocation() {
       // Proposer d'utiliser l'altitude GPS si disponible
       if (pos.coords.altitude !== null) {
         const altBtn = document.getElementById('btn-use-gps-alt');
-        document.getElementById('gps-alt-val').textContent = Math.round(pos.coords.altitude);
-        altBtn.style.display = 'inline-block';
+        const gpsAltVal = document.getElementById('gps-alt-val');
+        if (gpsAltVal) gpsAltVal.textContent = Math.round(pos.coords.altitude);
+        if (altBtn) altBtn.style.display = 'inline-block';
       }
 
       // Géocodage inversé automatique dès que les coordonnées sont acquises
@@ -157,14 +166,19 @@ function acquireGpsLocation() {
         ? 'Autorisation GPS refusée dans le navigateur.'
         : 'Signal satellite trop faible ou indisponible.';
 
-      badge.className = 'badge-gps badge-gps-err';
-      badge.textContent = 'GPS indisponible';
-      msgEl.textContent = state.gps.error + ' Utilisez le bouton « Coordonnées test » si nécessaire.';
-      msgEl.style.display = 'block';
+      if (badge) {
+        badge.className = 'badge-gps badge-gps-err';
+        badge.textContent = 'GPS indisponible';
+      }
+      if (msgEl) {
+        msgEl.textContent = state.gps.error + ' Utilisez le bouton « Coordonnées test » si nécessaire.';
+        msgEl.style.display = 'block';
+      }
 
       // Afficher l'aide hors-ligne / réseau indisponible
       const lieuDitHint = document.getElementById('lieudit-hint');
-      if (lieuDitHint && !document.getElementById('input-lieudit').value.trim()) {
+      const lieuDitInput = document.getElementById('input-lieudit');
+      if (lieuDitHint && lieuDitInput && !lieuDitInput.value.trim()) {
         lieuDitHint.className = 'field-hint text-amber';
         lieuDitHint.textContent = 'Réseau indisponible : Saisie manuelle ou géocodage ultérieur en pépinière';
         lieuDitHint.style.display = 'block';
@@ -183,16 +197,18 @@ function simulateGpsLocation() {
   state.gps.status = 'acquired';
   state.gps.error = '';
 
-  document.getElementById('gps-msg').style.display = 'none';
+  const gpsMsg = document.getElementById('gps-msg');
+  if (gpsMsg) gpsMsg.style.display = 'none';
   renderGpsDisplay();
 
   const altBtn = document.getElementById('btn-use-gps-alt');
-  document.getElementById('gps-alt-val').textContent = '255';
-  altBtn.style.display = 'inline-block';
+  const gpsAltVal = document.getElementById('gps-alt-val');
+  if (gpsAltVal) gpsAltVal.textContent = '255';
+  if (altBtn) altBtn.style.display = 'inline-block';
 
   // Si l'altitude est vide, la préremplir
   const altInput = document.getElementById('input-altitude');
-  if (!altInput.value) {
+  if (altInput && !altInput.value) {
     altInput.value = '255';
   }
 
@@ -202,20 +218,24 @@ function simulateGpsLocation() {
 
 function renderGpsDisplay() {
   const badge = document.getElementById('gps-status-badge');
-  badge.className = 'badge-gps badge-gps-ok';
-  badge.textContent = 'Signal GPS fixé ✓';
+  if (badge) {
+    badge.className = 'badge-gps badge-gps-ok';
+    badge.textContent = 'Signal GPS fixé ✓';
+  }
 
-  document.getElementById('display-lat').textContent = state.gps.lat ? state.gps.lat.toFixed(6) + '° N' : '-';
-  document.getElementById('display-lng').textContent = state.gps.lng ? state.gps.lng.toFixed(6) + '° E' : '-';
-  document.getElementById('display-acc').textContent = state.gps.acc ? `± ${Math.round(state.gps.acc)} m` : 'N/A';
-  document.getElementById('display-alt-gps').textContent = state.gps.alt ? `${Math.round(state.gps.alt)} m` : 'Non fourni';
+  const latEl = document.getElementById('display-lat');
+  const lngEl = document.getElementById('display-lng');
+  const accEl = document.getElementById('display-acc');
+  const altGpsEl = document.getElementById('display-alt-gps');
+
+  if (latEl) latEl.textContent = state.gps.lat ? state.gps.lat.toFixed(6) + '° N' : '-';
+  if (lngEl) lngEl.textContent = state.gps.lng ? state.gps.lng.toFixed(6) + '° E' : '-';
+  if (accEl) accEl.textContent = state.gps.acc ? `± ${Math.round(state.gps.acc)} m` : 'N/A';
+  if (altGpsEl) altGpsEl.textContent = state.gps.alt ? `${Math.round(state.gps.alt)} m` : 'Non fourni';
 }
 
 /**
  * Géocodage Inversé automatique via l'API publique geo.api.gouv.fr
- * Si connecté : pré-remplit "Commune / Lieu-dit"
- * Si hors-ligne / erreur : attrape silencieusement, laisse le champ vide et modifiable,
- * et affiche le texte d'aide requis.
  */
 async function reverseGeocode(lat, lng) {
   const lieuDitInput = document.getElementById('input-lieudit');
@@ -223,7 +243,6 @@ async function reverseGeocode(lat, lng) {
 
   if (!lat || !lng) return;
 
-  // Détection hors-ligne immédiate
   if (!navigator.onLine) {
     if (lieuDitHint) {
       lieuDitHint.className = 'field-hint text-amber';
@@ -235,7 +254,7 @@ async function reverseGeocode(lat, lng) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout en zone réseau faible
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const url = `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom`;
     const response = await fetch(url, { signal: controller.signal });
@@ -251,8 +270,7 @@ async function reverseGeocode(lat, lng) {
       const communeNom = data[0].nom;
       state.gps.commune = communeNom;
 
-      // Pré-remplir automatiquement le champ s'il est vide ou s'il a été préalablement auto-rempli
-      if (!lieuDitInput.value.trim() || lieuDitInput.dataset.autoFilled === 'true') {
+      if (lieuDitInput && (!lieuDitInput.value.trim() || lieuDitInput.dataset.autoFilled === 'true')) {
         lieuDitInput.value = communeNom;
         lieuDitInput.dataset.autoFilled = 'true';
       }
@@ -270,8 +288,6 @@ async function reverseGeocode(lat, lng) {
       }
     }
   } catch (err) {
-    // Si le téléphone est hors-ligne en forêt :
-    // Attraper l'erreur silencieusement, laisser le champ modifiable et afficher le message d'aide exact
     state.gps.commune = null;
     if (lieuDitHint) {
       lieuDitHint.className = 'field-hint text-amber';
@@ -281,73 +297,73 @@ async function reverseGeocode(lat, lng) {
   }
 }
 
-<script>
-  // ==========================================================================
-  // 3. LOGIQUE CONDITIONNELLE : ESPÈCES & OBJECTIF RÉGLEMENTAIRE
-  // ==========================================================================
+// ==========================================================================
+// 3. LOGIQUE CONDITIONNELLE : ESPÈCES & OBJECTIF RÉGLEMENTAIRE
+// ==========================================================================
 
-  function onSpeciesChanged(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const regime = selectedOption.getAttribute('data-regime');
+function onSpeciesChanged(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
 
-    const cardMfr = document.getElementById('card-reg-mfr');
-    const cardBoth = document.getElementById('card-reg-both');
-    const lockedBadge = document.getElementById('badge-locked-vl');
-    const noticeVl = document.getElementById('notice-vl-only');
+  const cardMfr = document.getElementById('card-reg-mfr');
+  const cardBoth = document.getElementById('card-reg-both');
+  const lockedBadge = document.getElementById('badge-locked-vl');
+  const noticeVl = document.getElementById('notice-vl-only');
 
-    if (regime === 'vl') {
-      setRegulatoryObjective('VL');
-      cardMfr.classList.add('disabled');
-      cardBoth.classList.add('disabled');
-      lockedBadge.style.display = 'inline-block';
-      noticeVl.style.display = 'block';
-    } else {
-      cardMfr.classList.remove('disabled');
-      cardBoth.classList.remove('disabled');
-      lockedBadge.style.display = 'none';
-      noticeVl.style.display = 'none';
-    }
-
-    refreshConditionalSections();
+  if (regime === 'vl') {
+    setRegulatoryObjective('VL');
+    if (cardMfr) cardMfr.classList.add('disabled');
+    if (cardBoth) cardBoth.classList.add('disabled');
+    if (lockedBadge) lockedBadge.style.display = 'inline-block';
+    if (noticeVl) noticeVl.style.display = 'block';
+  } else {
+    if (cardMfr) cardMfr.classList.remove('disabled');
+    if (cardBoth) cardBoth.classList.remove('disabled');
+    if (lockedBadge) lockedBadge.style.display = 'none';
+    if (noticeVl) noticeVl.style.display = 'none';
   }
 
-  function setRegulatoryObjective(objective) {
-    state.currentObjective = objective;
+  refreshConditionalSections();
+}
 
-    document.querySelectorAll('.radio-card').forEach(card => {
-      const radio = card.querySelector('input[type="radio"]');
+function setRegulatoryObjective(objective) {
+  state.currentObjective = objective;
+
+  document.querySelectorAll('.radio-card').forEach(card => {
+    const radio = card.querySelector('input[type="radio"]');
+    if (radio) {
       const isChecked = radio.value === objective;
       radio.checked = isChecked;
       card.classList.toggle('active', isChecked);
-    });
+    }
+  });
 
-    refreshConditionalSections();
-  }
+  refreshConditionalSections();
+}
 
-  function refreshConditionalSections() {
-    const selectElement = document.getElementById('species-select');
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
+function refreshConditionalSections() {
+  const selectElement = document.getElementById('species-select');
+  const selectedOption = selectElement ? selectElement.options[selectElement.selectedIndex] : null;
+  const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
 
-    const effectiveObjective = (regime === 'vl') ? 'VL' : state.currentObjective;
+  const effectiveObjective = (regime === 'vl') ? 'VL' : state.currentObjective;
 
-    const showVL = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
-    const showMFR = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
+  const showVL = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
+  const showMFR = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
 
-    const sectionVl = document.getElementById('section-vl');
-    const sectionMfr = document.getElementById('section-mfr');
+  const sectionVl = document.getElementById('section-vl');
+  const sectionMfr = document.getElementById('section-mfr');
 
-    if (sectionVl) sectionVl.style.display = showVL ? 'block' : 'none';
-    if (sectionMfr) sectionMfr.style.display = showMFR ? 'block' : 'none';
-  }
-</script>
+  if (sectionVl) sectionVl.style.display = showVL ? 'block' : 'none';
+  if (sectionMfr) sectionMfr.style.display = showMFR ? 'block' : 'none';
+}
 
 // ==========================================================================
 // 4. MODULE PHOTO GÉOLOCALISÉE
 // ==========================================================================
 
 let currentPhotoData = null;
-let currentPhotoCoords = null; // Variable globale pour stocker les coordonnées GPS de la photo
+let currentPhotoCoords = null;
 
 function handlePhotoCapture(event) {
   const file = event.target.files[0];
@@ -355,9 +371,8 @@ function handlePhotoCapture(event) {
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    currentPhotoData = e.target.result; // Contient l'image en Base64 pour le JSON
+    currentPhotoData = e.target.result;
     
-    // Affichage de la miniature
     const preview = document.getElementById('photo-preview');
     const container = document.getElementById('photo-preview-container');
     const gpsInfo = document.getElementById('photo-gps-info');
@@ -365,7 +380,6 @@ function handlePhotoCapture(event) {
     if (preview) preview.src = currentPhotoData;
     if (container) container.style.display = 'block';
 
-    // Capture des coordonnées GPS courantes au moment de la photo
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -376,8 +390,6 @@ function handlePhotoCapture(event) {
           if (gpsInfo) {
             gpsInfo.innerHTML = `📍 GPS attaché : Lat ${lat}, Lon ${lon} (Précision : ${acc}m)`;
           }
-          
-          // On stocke les coordonnées associées pour le JSON final
           currentPhotoCoords = { latitude: lat, longitude: lon, precision: acc };
         },
         (error) => {
@@ -401,10 +413,6 @@ function handlePhotoCapture(event) {
 // 5. QUANTITÉ DYNAMIQUE ET COMPTEUR D'INDIVIDUS
 // ==========================================================================
 
-/**
- * Adapte automatiquement le libellé (label) ou le placeholder du champ "Quantité récoltée"
- * selon le type de matériel sélectionné (Graines, Boutures, Plantes entières).
- */
 function updateDynamicQuantite(materielType) {
   const inputQuantite = document.getElementById('input-quantite');
   const labelQuantite = document.getElementById('label-quantite');
@@ -416,19 +424,17 @@ function updateDynamicQuantite(materielType) {
     if (labelQuantite) labelQuantite.textContent = 'Nombre de plantes entières';
     if (inputQuantite) inputQuantite.placeholder = 'Nombre de plantes entières (Optionnel)';
   } else {
-    // Graines par défaut
     if (labelQuantite) labelQuantite.textContent = 'Quantité récoltée';
     if (inputQuantite) inputQuantite.placeholder = 'Quantité de graines (Optionnel)';
   }
 }
 
-/**
- * Met à jour le compteur d'individus (démarrant à 1) et le badge de conformité
- */
 function setIndividusCount(val) {
   const count = Math.max(1, parseInt(val, 10) || 1);
-  document.getElementById('input-individus').value = count;
-  document.getElementById('val-individus').textContent = count;
+  const inputInd = document.getElementById('input-individus');
+  const valInd = document.getElementById('val-individus');
+  if (inputInd) inputInd.value = count;
+  if (valInd) valInd.textContent = count;
 
   const labelEl = document.getElementById('label-individus');
   if (labelEl) {
@@ -436,12 +442,14 @@ function setIndividusCount(val) {
   }
 
   const badge = document.getElementById('badge-seuil');
-  if (count >= 30) {
-    badge.className = 'badge-threshold valid';
-    badge.textContent = '✓ Seuil validé (≥ 30)';
-  } else {
-    badge.className = 'badge-threshold invalid';
-    badge.textContent = '⚠️ Seuil incomplet (< 30 requis au global)';
+  if (badge) {
+    if (count >= 30) {
+      badge.className = 'badge-threshold valid';
+      badge.textContent = '✓ Seuil validé (≥ 30)';
+    } else {
+      badge.className = 'badge-threshold invalid';
+      badge.textContent = '⚠️ Seuil incomplet (< 30 requis au global)';
+    }
   }
 }
 
@@ -455,7 +463,8 @@ function validateAndSaveSession() {
 
   const errors = [];
 
-  const species = document.getElementById('species-select').value;
+  const speciesSelect = document.getElementById('species-select');
+  const species = speciesSelect ? speciesSelect.value : '';
   const lieuDit = document.getElementById('input-lieudit').value.trim();
   const altitudeStr = document.getElementById('input-altitude').value.trim();
   const materielType = document.getElementById('input-materiel-type').value;
@@ -468,11 +477,12 @@ function validateAndSaveSession() {
   const poidsStr = poidsInput ? poidsInput.value.trim() : '';
   const poidsVal = poidsStr !== '' ? Number(poidsStr) : null;
 
-  // Tronc commun obligatoire
+  if (!species) {
+    errors.push("L'espèce ciblée est obligatoire.");
+  }
   if (!lieuDit) {
     errors.push('Le champ Commune / Lieu-dit de récolte est obligatoire.');
   }
-
   if (!altitudeStr || isNaN(Number(altitudeStr))) {
     errors.push("L'altitude en mètres est obligatoire.");
   }
@@ -482,7 +492,6 @@ function validateAndSaveSession() {
   const isVLActive = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
   const isMFRActive = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
 
-  // Validation Végétal Local
   let eunisHabitat = '';
   let ph = '';
   let humidite = '';
@@ -513,7 +522,6 @@ function validateAndSaveSession() {
     }
   }
 
-  // Validation MFR
   let categorieMFR = '';
   let codePeuplement = '';
 
@@ -529,14 +537,12 @@ function validateAndSaveSession() {
     }
   }
 
-  // En cas d'erreurs, affichage en haut
   if (errors.length > 0) {
     showErrorBanner(errors);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // Construction de l'objet JSON complet et structuré
   const labelQuantiteEl = document.getElementById('label-quantite');
   const payload = {
     schemaVersion: '1.2.0',
@@ -595,7 +601,6 @@ function validateAndSaveSession() {
       categorieMFR: categorieMFR,
       codePeuplementBase: codePeuplement.toUpperCase(),
     } : null,
-    // 📸 Ajout propre de la photo géolocalisée dans le JSON
     photoStation: {
       image: currentPhotoData || null,
       coordonnees: currentPhotoCoords || null,
@@ -607,7 +612,6 @@ function validateAndSaveSession() {
     },
   };
 
-  // Sauvegarde dans le localStorage du navigateur
   saveSessionToLocalStorage(payload);
 
   state.lastSavedPayload = payload;
@@ -637,53 +641,18 @@ function saveSessionToLocalStorage(payload) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
-function updateSessionWeight(sessionId, newWeight) {
-  const sessions = getStoredSessions();
-  const target = sessions.find(s => s.sessionId === sessionId);
-  if (target) {
-    const num = Number(newWeight);
-    target.quantite = num;
-    target.poids_g = num;
-    if (target.troncCommun) {
-      target.troncCommun.quantite = num;
-      target.troncCommun.poids_g = num;
-      target.troncCommun.quantiteRecoltee = num;
-      target.troncCommun.isWeightDeferred = false;
-      target.troncCommun.isQuantiteRenseignee = true;
-    }
-    target.sync.savedLocallyAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    renderSessionsList();
-  }
-}
-
-function deleteSession(sessionId) {
-  if (confirm('Supprimer cette session locale ?')) {
-    const sessions = getStoredSessions().filter(s => s.sessionId !== sessionId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    renderSessionsList();
-    updateSessionsCountBadge();
-  }
-}
-
 // ==========================================================================
 // 7. GESTION DES ÉVÉNEMENTS DU DOM
 // ==========================================================================
 
 function bindEvents() {
   // Changement d'espèce
-  document.getElementById('species-select').addEventListener('change', (e) => {
-    onSpeciesChanged(e.target.value);
-  });
-
-  // Pastilles d'espèces rapides
-  document.querySelectorAll('.chip[data-species]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const species = btn.getAttribute('data-species');
-      document.getElementById('species-select').value = species;
-      onSpeciesChanged(species);
+  const speciesSelect = document.getElementById('species-select');
+  if (speciesSelect) {
+    speciesSelect.addEventListener('change', (e) => {
+      onSpeciesChanged(e.target);
     });
-  });
+  }
 
   // Changement d'objectif réglementaire (Cartes radio)
   document.querySelectorAll('input[name="regulatoryObjective"]').forEach(radio => {
@@ -693,17 +662,23 @@ function bindEvents() {
   });
 
   // Actualisation GPS
-  document.getElementById('btn-refresh-gps').addEventListener('click', acquireGpsLocation);
-  document.getElementById('btn-simulate-gps').addEventListener('click', simulateGpsLocation);
+  const btnRefreshGps = document.getElementById('btn-refresh-gps');
+  if (btnRefreshGps) btnRefreshGps.addEventListener('click', acquireGpsLocation);
+
+  const btnSimulateGps = document.getElementById('btn-simulate-gps');
+  if (btnSimulateGps) btnSimulateGps.addEventListener('click', simulateGpsLocation);
 
   // Utiliser l'altitude GPS
-  document.getElementById('btn-use-gps-alt').addEventListener('click', () => {
-    if (state.gps.alt !== null) {
-      document.getElementById('input-altitude').value = Math.round(state.gps.alt);
-    }
-  });
+  const btnUseGpsAlt = document.getElementById('btn-use-gps-alt');
+  if (btnUseGpsAlt) {
+    btnUseGpsAlt.addEventListener('click', () => {
+      if (state.gps.alt !== null) {
+        document.getElementById('input-altitude').value = Math.round(state.gps.alt);
+      }
+    });
+  }
 
-  // Écouteur d'événement (change) UNIQUEMENT sur le menu déroulant existant "Type de matériel"
+  // Écouteur sur le menu déroulant "Type de matériel"
   const selectMateriel = document.getElementById('select-materiel-type');
   if (selectMateriel) {
     selectMateriel.addEventListener('change', (e) => {
@@ -711,17 +686,15 @@ function bindEvents() {
       const hiddenInput = document.getElementById('input-materiel-type');
       if (hiddenInput) hiddenInput.value = val;
 
-      // Synchronisation visuelle des pastilles d'accès rapide
       document.querySelectorAll('.chip-materiel').forEach(c => {
         c.classList.toggle('active', c.getAttribute('data-value') === val);
       });
 
-      // Mise à jour dynamique du label et placeholder du champ Quantité récoltée situé en dessous
       updateDynamicQuantite(val);
     });
   }
 
-  // Puces rapides de type de matériel (déclenchent l'événement change sur le menu déroulant existant)
+  // Puces rapides de type de matériel
   document.querySelectorAll('.chip-materiel').forEach(btn => {
     btn.addEventListener('click', () => {
       const val = btn.getAttribute('data-value');
@@ -733,7 +706,7 @@ function bindEvents() {
     });
   });
 
-  // Détection de saisie manuelle du lieu-dit pour ne pas l'écraser automatiquement par le GPS
+  // Détection saisie manuelle lieu-dit
   const lieuDitInput = document.getElementById('input-lieudit');
   if (lieuDitInput) {
     lieuDitInput.addEventListener('input', () => {
@@ -764,23 +737,28 @@ function bindEvents() {
   });
 
   // Compteur d'individus
-  document.getElementById('btn-minus-ind').addEventListener('click', () => {
+  const btnMinus = document.getElementById('btn-minus-ind');
+  if (btnMinus) btnMinus.addEventListener('click', () => {
     const cur = parseInt(document.getElementById('input-individus').value, 10) || 1;
     setIndividusCount(cur - 1);
   });
-  document.getElementById('btn-plus-ind').addEventListener('click', () => {
+  const btnPlus = document.getElementById('btn-plus-ind');
+  if (btnPlus) btnPlus.addEventListener('click', () => {
     const cur = parseInt(document.getElementById('input-individus').value, 10) || 1;
     setIndividusCount(cur + 1);
   });
-  document.getElementById('btn-add-5').addEventListener('click', () => {
+  const btnAdd5 = document.getElementById('btn-add-5');
+  if (btnAdd5) btnAdd5.addEventListener('click', () => {
     const cur = parseInt(document.getElementById('input-individus').value, 10) || 0;
     setIndividusCount(cur + 5);
   });
-  document.getElementById('btn-add-10').addEventListener('click', () => {
+  const btnAdd10 = document.getElementById('btn-add-10');
+  if (btnAdd10) btnAdd10.addEventListener('click', () => {
     const cur = parseInt(document.getElementById('input-individus').value, 10) || 0;
     setIndividusCount(cur + 10);
   });
-  document.getElementById('btn-set-30').addEventListener('click', () => {
+  const btnSet30 = document.getElementById('btn-set-30');
+  if (btnSet30) btnSet30.addEventListener('click', () => {
     setIndividusCount(30);
   });
 
@@ -803,52 +781,18 @@ function bindEvents() {
   });
 
   // Enregistrer la session
-  document.getElementById('btn-save-session').addEventListener('click', validateAndSaveSession);
+  const btnSave = document.getElementById('btn-save-session');
+  if (btnSave) btnSave.addEventListener('click', validateAndSaveSession);
 
   // Nouvelle session
-  document.getElementById('btn-new-session').addEventListener('click', initNewSession);
-  document.getElementById('btn-alert-new').addEventListener('click', initNewSession);
+  const btnNew = document.getElementById('btn-new-session');
+  if (btnNew) btnNew.addEventListener('click', initNewSession);
+  const btnAlertNew = document.getElementById('btn-alert-new');
+  if (btnAlertNew) btnAlertNew.addEventListener('click', initNewSession);
 
   // Fermeture alerte de succès
   const btnDismissAlert = document.getElementById('btn-dismiss-alert');
   if (btnDismissAlert) btnDismissAlert.addEventListener('click', hideSuccessBanner);
-
-  // Tiroir de sessions
-  document.getElementById('btn-open-history').addEventListener('click', openSessionsDrawer);
-  document.getElementById('btn-close-drawer').addEventListener('click', closeSessionsDrawer);
-  document.getElementById('btn-drawer-ok').addEventListener('click', closeSessionsDrawer);
-  document.getElementById('btn-export-all').addEventListener('click', exportAllSessionsJson);
-
-  // Actions de l'inspecteur JSON
-  document.getElementById('btn-view-last-json').addEventListener('click', () => {
-    if (state.lastSavedPayload) {
-      openSessionsDrawer();
-      setTimeout(() => {
-        window.viewSessionJson(state.lastSavedPayload.sessionId);
-      }, 150);
-    }
-  });
-
-  document.getElementById('btn-copy-json').addEventListener('click', () => {
-    const text = document.getElementById('json-content').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('btn-copy-json');
-      const original = btn.textContent;
-      btn.textContent = 'Copié ✓';
-      setTimeout(() => { btn.textContent = original; }, 2000);
-    });
-  });
-
-  document.getElementById('btn-download-json').addEventListener('click', () => {
-    if (!state.viewingSession) return;
-    const blob = new Blob([JSON.stringify(state.viewingSession, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${state.viewingSession.sessionId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
 
   // Détection en ligne / hors ligne
   window.addEventListener('online', updateNetworkStatus);
