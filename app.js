@@ -620,6 +620,16 @@ const btnUseGpsAlt = document.getElementById('btn-use-gps-alt');
     });
   });
 
+// Suggestions de code MFR (Exemples rapides)
+  document.querySelectorAll('.chip-code').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inputPeuplement = document.getElementById('input-peuplement');
+      if (inputPeuplement) {
+        inputPeuplement.value = btn.getAttribute('data-code');
+      }
+    });
+  });
+
   const btnSave = document.getElementById('btn-save-session');
   if (btnSave) btnSave.addEventListener('click', validateAndSaveSession);
 
