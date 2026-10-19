@@ -141,37 +141,77 @@
           <label for="species-select" class="form-label">
             Espèce ciblée <span class="req">*</span>
           </label>
-          <select id="species-select" class="form-control select-large">
+          <select id="species-select" class="form-control select-large" onchange="onSpeciesChanged(this)">
             <option value="" disabled selected>-- Sélectionnez une essence --</option>
-            <option value="Acer campestre" data-regime="both">Érable champêtre (Acer campestre)</option>
-            <option value="Acer monspessulanum" data-regime="both">Érable de Montpellier (Acer monspessulanum)</option>
-            <option value="Acer platanoides" data-regime="both">Érable plane (Acer platanoides)</option>
-            <option value="Acer pseudoplatanus" data-regime="both">Érable sycomore (Acer pseudoplatanus)</option>
-            <option value="Alnus glutinosa" data-regime="both">Aulne glutineux (Alnus glutinosa)</option>
-            <option value="Carpinus betulus" data-regime="both">Charme (Carpinus betulus)</option>
+            
+            <!-- Érables -->
+            <option value="Acer campestre" data-regime="both" data-mfr-cat="Identifiée">Érable champêtre (Acer campestre)</option>
+            <option value="Acer monspessulanum" data-regime="both" data-mfr-cat="Identifiée">Érable de Montpellier (Acer monspessulanum)</option>
+            <option value="Acer platanoides" data-regime="both" data-mfr-cat="Identifiée">Érable plane (Acer platanoides)</option>
+            <option value="Acer pseudoplatanus" data-regime="both" data-mfr-cat="Sélectionnée">Érable sycomore (Acer pseudoplatanus)</option>
+            
+            <!-- Aulne -->
+            <option value="Alnus glutinosa" data-regime="both" data-mfr-cat="Identifiée">Aulne glutineux (Alnus glutinosa)</option>
+            
+            <!-- Charme -->
+            <option value="Carpinus betulus" data-regime="both" data-mfr-cat="Identifiée">Charme (Carpinus betulus)</option>
+            
+            <!-- Cornouillers -->
             <option value="Cornus mas" data-regime="vl">Cornouiller mâle (Cornus mas)</option>
             <option value="Cornus sanguinea" data-regime="vl">Cornouiller sanguin (Cornus sanguinea)</option>
+            
+            <!-- Noisetier -->
             <option value="Corylus avellana" data-regime="vl">Noisetier (Corylus avellana)</option>
+            
+            <!-- Aubépine -->
             <option value="Crataegus monogyna" data-regime="vl">Aubépine à un style (Crataegus monogyna)</option>
+            
+            <!-- Fusain -->
             <option value="Euonymus europaeus" data-regime="vl">Fusain d’Europe (Euonymus europaeus)</option>
-            <option value="Fagus sylvatica" data-regime="both">Hêtre (Fagus sylvatica)</option>
-            <option value="Fraxinus excelsior" data-regime="both">Frêne commun (Fraxinus excelsior)</option>
+            
+            <!-- Hêtre -->
+            <option value="Fagus sylvatica" data-regime="both" data-mfr-cat="Sélectionnée">Hêtre (Fagus sylvatica)</option>
+            
+            <!-- Frêne -->
+            <option value="Fraxinus excelsior" data-regime="both" data-mfr-cat="Sélectionnée">Frêne commun (Fraxinus excelsior)</option>
+            
+            <!-- Houx -->
             <option value="Ilex aquifolium" data-regime="vl">Houx (Ilex aquifolium)</option>
+            
+            <!-- Troène -->
             <option value="Ligustrum vulgare" data-regime="vl">Troène (Ligustrum vulgare)</option>
-            <option value="Malus sylvestris" data-regime="both">Pommier sauvage (Malus sylvestris)</option>
-            <option value="Pyrus communis" data-regime="both">Poirier commun (Pyrus communis)</option>
-            <option value="Prunus avium" data-regime="both">Merisier (Prunus avium)</option>
+            
+            <!-- Pommier & Poirier -->
+            <option value="Malus sylvestris" data-regime="both" data-mfr-cat="Identifiée">Pommier sauvage (Malus sylvestris)</option>
+            <option value="Pyrus communis" data-regime="both" data-mfr-cat="Identifiée">Poirier commun (Pyrus communis)</option>
+            
+            <!-- Prunus -->
+            <option value="Prunus avium" data-regime="both" data-mfr-cat="Sélectionnée">Merisier (Prunus avium)</option>
             <option value="Prunus spinosa" data-regime="vl">Prunellier (Prunus spinosa)</option>
-            <option value="Quercus petraea" data-regime="both">Chêne sessile (Quercus petraea)</option>
-            <option value="Quercus robur" data-regime="both">Chêne pédonculé (Quercus robur)</option>
+            
+            <!-- Chênes -->
+            <option value="Quercus petraea" data-regime="both" data-mfr-cat="Sélectionnée">Chêne sessile (Quercus petraea)</option>
+            <option value="Quercus robur" data-regime="both" data-mfr-cat="Sélectionnée">Chêne pédonculé (Quercus robur)</option>
+            
+            <!-- Nerprun -->
             <option value="Rhamnus cathartica" data-regime="vl">Nerprun officinal (Rhamnus cathartica)</option>
+            
+            <!-- Groseillier -->
             <option value="Ribes rubrum" data-regime="vl">Groseillier (Ribes rubrum)</option>
+            
+            <!-- Rosier -->
             <option value="Rosa canina" data-regime="vl">Rosier des chiens (Rosa canina)</option>
+            
+            <!-- Sureau -->
             <option value="Sambucus nigra" data-regime="vl">Sureau noir (Sambucus nigra)</option>
-            <option value="Sorbus aucuparia" data-regime="both">Sorbier des oiseleurs (Sorbus aucuparia)</option>
-            <option value="Sorbus torminalis" data-regime="both">Alisier torminal (Sorbus torminalis)</option>
-            <option value="Tilia cordata" data-regime="both">Tilleul à petites feuilles (Tilia cordata)</option>
-            <option value="Tilia platyphyllos" data-regime="both">Tilleul à grandes feuilles (Tilia platyphyllos)</option>
+            
+            <!-- Sorbiers & Alisier -->
+            <option value="Sorbus aucuparia" data-regime="both" data-mfr-cat="Identifiée">Sorbier des oiseleurs (Sorbus aucuparia)</option>
+            <option value="Sorbus torminalis" data-regime="both" data-mfr-cat="Identifiée">Alisier torminal (Sorbus torminalis)</option>
+            
+            <!-- Tilleuls -->
+            <option value="Tilia cordata" data-regime="both" data-mfr-cat="Identifiée">Tilleul à petites feuilles (Tilia cordata)</option>
+            <option value="Tilia platyphyllos" data-regime="both" data-mfr-cat="Identifiée">Tilleul à grandes feuilles (Tilia platyphyllos)</option>
           </select>
         </div>
 
@@ -520,7 +560,7 @@
     </div>
   </div>
 
-  <!-- LIEN VERS LE FICHIER JAVASCRIPT (doit s'appeler app.js) -->
+  <!-- LIEN VERS LE FICHIER JAVASCRIPT -->
   <script src="./app.js"></script>
 </body>
 </html>
