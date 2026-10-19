@@ -141,7 +141,7 @@
           <label for="species-select" class="form-label">
             Espèce ciblée <span class="req">*</span>
           </label>
-          <select id="species-select" class="form-control select-large" onchange="onSpeciesChanged(this)">
+          <select id="species-select" class="form-control select-large">
             <option value="" disabled selected>-- Sélectionnez une essence --</option>
             <option value="Acer campestre" data-regime="both">Érable champêtre (Acer campestre)</option>
             <option value="Acer monspessulanum" data-regime="both">Érable de Montpellier (Acer monspessulanum)</option>
@@ -223,8 +223,8 @@
         </div>
       </section>
 
-      <!-- Module Photo Géolocalisée -->
-      <div class="card">
+      <!-- 3. MODULE PHOTO GÉOLOCALISÉE -->
+      <section class="card">
         <div class="card-header">
           <div class="card-icon">📸</div>
           <div>
@@ -235,16 +235,16 @@
 
         <div class="form-group">
           <label for="station-photo" class="form-label">Prendre ou importer une photo</label>
-          <input type="file" id="station-photo" accept="image/*" capture="environment" class="form-control" onchange="handlePhotoCapture(event)">
+          <input type="file" id="station-photo" accept="image/*" capture="environment" class="form-control">
           
           <div id="photo-preview-container" style="margin-top: 15px; display: none; text-align: center;">
             <img id="photo-preview" src="" alt="Aperçu station" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #ccc;">
             <p id="photo-gps-info" style="font-size: 0.9rem; color: #666; margin-top: 5px;"></p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 3. TRONC COMMUN -->
+      <!-- 4. TRONC COMMUN -->
       <section class="card card-common">
         <div class="card-header">
           <div class="card-icon card-icon-amber">📦</div>
@@ -315,7 +315,7 @@
         </div>
       </section>
 
-      <!-- 4. VOLET VÉGÉTAL LOCAL -->
+      <!-- 5. VOLET VÉGÉTAL LOCAL -->
       <section id="section-vl" class="card card-vl">
         <div class="card-header">
           <div class="card-icon card-icon-vl">🌿</div>
@@ -378,4 +378,149 @@
               <span class="form-label">Nombre d'individus collectés <span class="req">*</span></span>
               <p class="field-hint">Arbres ou arbustes distincts prélevés</p>
             </div>
-            <span id="badge-seuil"
+            <span id="badge-seuil" class="badge-threshold invalid">⚠️ Seuil incomplet (&lt; 30)</span>
+          </div>
+
+          <div class="stepper-box">
+            <button type="button" id="btn-minus-ind" class="btn-stepper" aria-label="Diminuer">-</button>
+            <div class="stepper-value">
+              <span id="val-individus" class="counter-num">1</span>
+              <span id="label-individus" class="counter-label">individu</span>
+            </div>
+            <button type="button" id="btn-plus-ind" class="btn-stepper btn-stepper-plus" aria-label="Augmenter">+</button>
+          </div>
+          <input type="hidden" id="input-individus" value="1">
+
+          <div class="quick-add-row">
+            <span>Ajouts rapides :</span>
+            <button type="button" class="btn-chip" id="btn-add-5">+5</button>
+            <button type="button" class="btn-chip" id="btn-add-10">+10</button>
+            <button type="button" class="btn-chip" id="btn-set-30">Seuil 30 direct</button>
+          </div>
+
+          <div class="reminder-box">
+            ⚠️ <strong>Rappel : 30 individus minimum au global pour valider un lot</strong>
+          </div>
+        </div>
+
+        <div class="checkbox-card" id="checkbox-25-container">
+          <label class="custom-checkbox">
+            <input type="checkbox" id="chk-25" checked>
+            <span class="checkbox-box"></span>
+            <span class="checkbox-text">
+              <strong>Je confirme ne pas avoir prélevé plus de 25% de la ressource disponible.</strong>
+              <small>Engagement éthique obligatoire pour garantir la régénération naturelle du peuplement.</small>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- 6. VOLET MFR -->
+      <section id="section-mfr" class="card card-mfr" style="display: none;">
+        <div class="card-header">
+          <div class="card-icon card-icon-mfr">🌲</div>
+          <div>
+            <h2>Volet MFR (Matériel Forestier de Reproduction)</h2>
+            <p class="card-sub">Code forestier et peuplements classés</p>
+          </div>
+          <span class="badge-mfr">Code Forestier</span>
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-action">
+            <span class="form-label">Catégorie MFR officielle <span class="req">*</span></span>
+            <span id="selected-mfr-text" class="sel-text">Sélectionné : Identifiée</span>
+          </div>
+
+          <div class="mfr-cards-grid" id="mfr-category-group">
+            <button type="button" class="mfr-btn active" data-value="Identifiée">
+              <strong>Identifiée</strong>
+              <small>Peuplement délimité</small>
+            </button>
+            <button type="button" class="mfr-btn" data-value="Sélectionnée">
+              <strong>Sélectionnée</strong>
+              <small>Phénotype supérieur</small>
+            </button>
+            <button type="button" class="mfr-btn" data-value="Qualifiée">
+              <strong>Qualifiée</strong>
+              <small>Verger à graines</small>
+            </button>
+            <button type="button" class="mfr-btn" data-value="Testée">
+              <strong>Testée</strong>
+              <small>Supériorité prouvée</small>
+            </button>
+          </div>
+          <input type="hidden" id="input-mfr-cat" value="Identifiée">
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-action">
+            <label for="input-peuplement" class="form-label">
+              Code du peuplement de base <span class="req">*</span>
+            </label>
+            <span class="field-hint">Format type : FR-XX-YY</span>
+          </div>
+          <input type="text" id="input-peuplement" class="form-control font-mono uppercase" placeholder="ex: FR-NOR-01, FR-BRE-02" value="FR-NOR-01">
+          <div class="quick-add-row" style="margin-top: 6px;">
+            <span>Exemples rapides :</span>
+            <button type="button" class="btn-chip chip-code" data-code="FR-NOR-01">FR-NOR-01</button>
+            <button type="button" class="btn-chip chip-code" data-code="FR-BFC-04">FR-BFC-04</button>
+            <button type="button" class="btn-chip chip-code" data-code="FR-ARA-02">FR-ARA-02</button>
+          </div>
+        </div>
+      </section>
+
+    </form>
+  </main>
+
+  <!-- BARRE FLOTTANTE -->
+  <footer class="floating-bar">
+    <div class="floating-bar-inner">
+      <button type="button" id="btn-save-session" class="btn-save-floating">
+        💾 Enregistrer la session (Hors-Ligne)
+      </button>
+    </div>
+  </footer>
+
+  <!-- MODAL / TIROIR DE CONSULTATION DES SESSIONS LOCALES -->
+  <div id="drawer-sessions" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span class="modal-icon">📂</span>
+          <div>
+            <h3>Sessions Hors-Ligne Enregistrées (<span id="modal-sessions-count">0</span>)</h3>
+            <p>Stockées dans le LocalStorage de ce navigateur</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-drawer" class="btn-icon-close">×</button>
+      </div>
+
+      <div class="modal-body" id="sessions-list-container">
+        <!-- Rempli dynamiquement par app.js -->
+      </div>
+
+      <!-- Inspecteur JSON intégré -->
+      <div id="json-viewer-box" class="json-inspector" style="display: none;">
+        <div class="json-header">
+          <strong id="json-title">JSON Structuré</strong>
+          <div class="json-actions">
+            <button type="button" id="btn-copy-json" class="btn-small">📋 Copier</button>
+            <button type="button" id="btn-download-json" class="btn-small btn-primary-mini">⬇️ Télécharger .json</button>
+            <button type="button" id="btn-close-json" class="btn-small">Fermer JSON</button>
+          </div>
+        </div>
+        <pre id="json-content"></pre>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btn-export-all" class="btn-secondary-action">Tout exporter (.json)</button>
+        <button type="button" id="btn-drawer-ok" class="btn-primary-action">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIEN VERS LE FICHIER JAVASCRIPT (doit s'appeler app.js) -->
+  <script src="./app.js"></script>
+</body>
+</html>
