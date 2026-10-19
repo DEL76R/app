@@ -551,6 +551,15 @@ function bindEvents() {
   const btnSimulateGps = document.getElementById('btn-simulate-gps');
   if (btnSimulateGps) btnSimulateGps.addEventListener('click', simulateGpsLocation);
 
+const btnUseGpsAlt = document.getElementById('btn-use-gps-alt');
+  if (btnUseGpsAlt) {
+    btnUseGpsAlt.addEventListener('click', () => {
+      if (state.gps.alt !== null) {
+        document.getElementById('input-altitude').value = Math.round(state.gps.alt);
+      }
+    });
+  }
+
   const selectMateriel = document.getElementById('select-materiel-type');
   if (selectMateriel) {
     selectMateriel.addEventListener('change', (e) => {
