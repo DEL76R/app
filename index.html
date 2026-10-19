@@ -57,6 +57,7 @@
           <span>⏳ File d'attente prête</span>
         </div>
         <div class="alert-buttons">
+          <button type="button" id="btn-view-last-json" class="btn-secondary-white">Voir le JSON généré</button>
           <button type="button" id="btn-alert-new" class="btn-primary-white">Nouvelle session</button>
         </div>
       </div>
@@ -377,109 +378,4 @@
               <span class="form-label">Nombre d'individus collectés <span class="req">*</span></span>
               <p class="field-hint">Arbres ou arbustes distincts prélevés</p>
             </div>
-            <span id="badge-seuil" class="badge-threshold invalid">⚠️ Seuil incomplet (&lt; 30)</span>
-          </div>
-
-          <div class="stepper-box">
-            <button type="button" id="btn-minus-ind" class="btn-stepper" aria-label="Diminuer">-</button>
-            <div class="stepper-value">
-              <span id="val-individus" class="counter-num">1</span>
-              <span id="label-individus" class="counter-label">individu</span>
-            </div>
-            <button type="button" id="btn-plus-ind" class="btn-stepper btn-stepper-plus" aria-label="Augmenter">+</button>
-          </div>
-          <input type="hidden" id="input-individus" value="1">
-
-          <div class="quick-add-row">
-            <span>Ajouts rapides :</span>
-            <button type="button" class="btn-chip" id="btn-add-5">+5</button>
-            <button type="button" class="btn-chip" id="btn-add-10">+10</button>
-            <button type="button" class="btn-chip" id="btn-set-30">Seuil 30 direct</button>
-          </div>
-
-          <div class="reminder-box">
-            ⚠️ <strong>Rappel : 30 individus minimum au global pour valider un lot</strong>
-          </div>
-        </div>
-
-        <div class="checkbox-card" id="checkbox-25-container">
-          <label class="custom-checkbox">
-            <input type="checkbox" id="chk-25" checked>
-            <span class="checkbox-box"></span>
-            <span class="checkbox-text">
-              <strong>Je confirme ne pas avoir prélevé plus de 25% de la ressource disponible.</strong>
-              <small>Engagement éthique obligatoire pour garantir la régénération naturelle du peuplement.</small>
-            </span>
-          </label>
-        </div>
-      </section>
-
-      <!-- 5. VOLET MFR -->
-      <section id="section-mfr" class="card card-mfr" style="display: none;">
-        <div class="card-header">
-          <div class="card-icon card-icon-mfr">🌲</div>
-          <div>
-            <h2>Volet MFR (Matériel Forestier de Reproduction)</h2>
-            <p class="card-sub">Code forestier et peuplements classés (Ministère Agriculture)</p>
-          </div>
-          <span class="badge-mfr">Code Forestier</span>
-        </div>
-
-        <div class="form-group">
-          <div class="label-with-action">
-            <span class="form-label">Catégorie MFR officielle <span class="req">*</span></span>
-            <span id="selected-mfr-text" class="sel-text">Sélectionné : Identifiée</span>
-          </div>
-
-          <div class="mfr-cards-grid" id="mfr-category-group">
-            <button type="button" class="mfr-btn active" data-value="Identifiée">
-              <strong>Identifiée</strong>
-              <small>Peuplement délimité</small>
-            </button>
-            <button type="button" class="mfr-btn" data-value="Sélectionnée">
-              <strong>Sélectionnée</strong>
-              <small>Phénotype supérieur</small>
-            </button>
-            <button type="button" class="mfr-btn" data-value="Qualifiée">
-              <strong>Qualifiée</strong>
-              <small>Verger à graines</small>
-            </button>
-            <button type="button" class="mfr-btn" data-value="Testée">
-              <strong>Testée</strong>
-              <small>Supériorité prouvée</small>
-            </button>
-          </div>
-          <input type="hidden" id="input-mfr-cat" value="Identifiée">
-        </div>
-
-        <div class="form-group">
-          <div class="label-with-action">
-            <label for="input-peuplement" class="form-label">
-              Code du peuplement de base <span class="req">*</span>
-            </label>
-            <span class="field-hint">Format type : FR-XX-YY</span>
-          </div>
-          <input type="text" id="input-peuplement" class="form-control font-mono uppercase" placeholder="ex: FR-NOR-01, FR-BRE-02" value="FR-NOR-01">
-          <div class="quick-add-row" style="margin-top: 6px;">
-            <span>Exemples rapides :</span>
-            <button type="button" class="btn-chip chip-code" data-code="FR-NOR-01">FR-NOR-01</button>
-            <button type="button" class="btn-chip chip-code" data-code="FR-BFC-04">FR-BFC-04</button>
-            <button type="button" class="btn-chip chip-code" data-code="FR-ARA-02">FR-ARA-02</button>
-          </div>
-        </div>
-      </section>
-
-    </form>
-  </main>
-
-  <footer class="floating-bar">
-    <div class="floating-bar-inner">
-      <button type="button" id="btn-save-session" class="btn-save-floating">
-        💾 Enregistrer la session (Hors-Ligne)
-      </button>
-    </div>
-  </footer>
-
-  <script src="./app.js"></script>
-</body>
-</html>
+            <span id="badge-seuil"
