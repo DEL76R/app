@@ -8,6 +8,7 @@ const STORAGE_KEY = 'semeur_harvest_sessions_v1';
 const state = {
   sessionId: '',
   dateStr: '',
+  displayDateStr: '', // Format de repli
   timeStr: '',
   gps: { lat: null, lng: null, acc: null, alt: null, status: 'idle', error: '', commune: null },
   currentObjective: 'VL',
@@ -41,6 +42,7 @@ window.initNewSession = function() {
 
   state.sessionId = generateSessionId();
   state.dateStr = `${yyyy}-${mm}-${dd}`;
+  state.displayDateStr = `${dd}/${mm}/${yyyy}`;
   state.timeStr = now.toTimeString().substring(0, 5);
 
   const inputDate = document.getElementById('input-date');
@@ -471,10 +473,20 @@ function validateAndSaveSession() {
   const labelQuantiteEl = document.getElementById('label-quantite');
   
   // Récupération de la date et l'heure manuelles
-  const dateVal = document.getElementById('input-date').value || state.dateStr;
-  const timeVal = document.getElementById('input-time').value || state.timeStr;
-  const [yyyy, mm, dd] = dateVal.split('-');
-  const customDisplayDateStr = `${dd}/${mm}/${yyyy}`;
+  const dateInputEl = document.getElementById('input-date');
+  const timeInputEl = document.getElementById('input-time');
+  
+  const dateVal = dateInputEl && dateInputEl.value ? dateInputEl.value : state.dateStr;
+  const timeVal = timeInputEl && timeInputEl.value ? timeInputEl.value : state.timeStr;
+  
+  // Formatage propre pour le JSON
+  let customDisplayDateStr = state.displayDateStr;
+  if (dateVal) {
+    const parts = dateVal.split('-');
+    if (parts.length === 3) {
+      customDisplayDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
 
   const payload = {
     schemaVersion: '1.2.0',
