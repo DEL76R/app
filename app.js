@@ -49,6 +49,12 @@ window.initNewSession = function() {
   const inputTime = document.getElementById('input-time');
   if (inputDate) inputDate.value = state.dateStr;
   if (inputTime) inputTime.value = state.timeStr;
+  
+  // Nettoyage des champs GPS manuels
+  const inputLat = document.getElementById('input-lat');
+  const inputLng = document.getElementById('input-lng');
+  if (inputLat) inputLat.value = '';
+  if (inputLng) inputLng.value = '';
 
   const lieuDitInput = document.getElementById('input-lieudit');
   if (lieuDitInput) { lieuDitInput.value = ''; delete lieuDitInput.dataset.autoFilled; }
@@ -189,12 +195,15 @@ function simulateGpsLocation() {
 function renderGpsDisplay() {
   const badge = document.getElementById('gps-status-badge');
   if (badge) { badge.className = 'badge-gps badge-gps-ok'; badge.textContent = 'Signal GPS fixé ✓'; }
-  const latEl = document.getElementById('display-lat');
-  const lngEl = document.getElementById('display-lng');
+  const latEl = document.getElementById('input-lat');
+  const lngEl = document.getElementById('input-lng');
   const accEl = document.getElementById('display-acc');
   const altGpsEl = document.getElementById('display-alt-gps');
-  if (latEl) latEl.textContent = state.gps.lat ? state.gps.lat.toFixed(6) + '° N' : '-';
-  if (lngEl) lngEl.textContent = state.gps.lng ? state.gps.lng.toFixed(6) + '° E' : '-';
+  
+  // On remplit les inputs de coordonnées
+  if (latEl && state.gps.lat) latEl.value = state.gps.lat.toFixed(6);
+  if (lngEl && state.gps.lng) lngEl.value = state.gps.lng.toFixed(6);
+  
   if (accEl) accEl.textContent = state.gps.acc ? `± ${Math.round(state.gps.acc)} m` : 'N/A';
   if (altGpsEl) altGpsEl.textContent = state.gps.alt ? `${Math.round(state.gps.alt)} m` : 'Non fourni';
 }
@@ -469,12 +478,13 @@ function validateAndSaveSession() {
 
   const labelQuantiteEl = document.getElementById('label-quantite');
   
-  // Lecture stricte des champs à l'écran (et nettoyage d'éventuelles secondes cachées par le navigateur)
+  // ----------------------------------------------------
+  // RECUPERATION HORODATAGE ET GPS MANUELS
+  // ----------------------------------------------------
   const finalDate = document.getElementById('input-date').value || state.dateStr;
   let finalTime = document.getElementById('input-time').value || state.timeStr;
   if (finalTime.length > 5) finalTime = finalTime.substring(0, 5); // Force le format HH:MM
   
-  // Formatage propre JJ/MM/AAAA
   let customDisplayDateStr = state.displayDateStr;
   if (finalDate) {
     const parts = finalDate.split('-');
@@ -482,6 +492,16 @@ function validateAndSaveSession() {
       customDisplayDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
   }
+
+  // Prise en compte de l'édition manuelle du GPS
+  const latInputEl = document.getElementById('input-lat');
+  const lngInputEl = document.getElementById('input-lng');
+  
+  const manualLat = latInputEl && latInputEl.value ? parseFloat(latInputEl.value) : null;
+  const manualLng = lngInputEl && lngInputEl.value ? parseFloat(lngInputEl.value) : null;
+  
+  const finalLat = (manualLat !== null && !isNaN(manualLat)) ? manualLat : state.gps.lat;
+  const finalLng = (manualLng !== null && !isNaN(manualLng)) ? manualLng : state.gps.lng;
 
   const payload = {
     schemaVersion: '1.2.0',
@@ -493,8 +513,8 @@ function validateAndSaveSession() {
       iso_utc: new Date(`${finalDate}T${finalTime}`).toISOString()
     },
     geolocation: {
-      latitude: state.gps.lat,
-      longitude: state.gps.lng,
+      latitude: finalLat,
+      longitude: finalLng,
       accuracyMeters: state.gps.acc,
       altitudeGps: state.gps.alt,
       status: state.gps.status,
@@ -508,7 +528,7 @@ function validateAndSaveSession() {
       selectedObjective: effectiveObjective,
       appliedRegulations: [
         ...(isVLActive ? ['Végétal Local (VL)'] : []),
-        ...(isMFRActive ? ['Matériel Forestier Reproduction (MFR)'] : []),
+        ...(isMFRActive ? ['Matériel Forestier de Reproduction (MFR)'] : []),
       ],
     },
     quantite: quantiteVal,
