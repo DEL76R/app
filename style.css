@@ -313,7 +313,6 @@ function handlePhotoCapture(event) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      // 1. Création d'un canevas pour redimensionner l'image
       const canvas = document.createElement('canvas');
       const MAX_WIDTH = 800;
       const MAX_HEIGHT = 800;
@@ -328,11 +327,9 @@ function handlePhotoCapture(event) {
       canvas.width = width;
       canvas.height = height;
       
-      // 2. Dessin de l'image réduite
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // 3. Compression en JPEG
       currentPhotoData = canvas.toDataURL('image/jpeg', 0.7);
 
       const preview = document.getElementById('photo-preview');
@@ -472,12 +469,10 @@ function validateAndSaveSession() {
 
   const labelQuantiteEl = document.getElementById('label-quantite');
   
-  // Lecture inconditionnelle des champs de date et heure visibles à l'écran
-  const dateInputEl = document.getElementById('input-date');
-  const timeInputEl = document.getElementById('input-time');
-  
-  const finalDate = dateInputEl && dateInputEl.value ? dateInputEl.value : state.dateStr;
-  const finalTime = timeInputEl && timeInputEl.value ? timeInputEl.value : state.timeStr;
+  // Lecture stricte des champs à l'écran (et nettoyage d'éventuelles secondes cachées par le navigateur)
+  const finalDate = document.getElementById('input-date').value || state.dateStr;
+  let finalTime = document.getElementById('input-time').value || state.timeStr;
+  if (finalTime.length > 5) finalTime = finalTime.substring(0, 5); // Force le format HH:MM
   
   // Formatage propre JJ/MM/AAAA
   let customDisplayDateStr = state.displayDateStr;
@@ -738,7 +733,6 @@ function renderSessionsList() {
   }
 
   container.innerHTML = sessions.map(s => {
-    // Affichage explicite de l'heure saisie pour vous rassurer
     const dateAffichee = s.collectedAt && s.collectedAt.date_fr 
       ? `${s.collectedAt.date_fr} à ${s.collectedAt.time_local}` 
       : s.timestamp.replace('T', ' à ');
