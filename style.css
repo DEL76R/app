@@ -558,5 +558,4 @@ pre#json-content { padding: 15px; color: #a6e22e; font-family: monospace; font-s
   .hide-mobile { display: none; }
   .mfr-cards-grid { grid-template-columns: 1fr; }
   .alert-buttons { flex-direction: column; }
-              }
-                             
+}
