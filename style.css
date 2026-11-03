@@ -472,17 +472,17 @@ function validateAndSaveSession() {
 
   const labelQuantiteEl = document.getElementById('label-quantite');
   
-  // Récupération de la date et l'heure manuelles
+  // Lecture inconditionnelle des champs de date et heure visibles à l'écran
   const dateInputEl = document.getElementById('input-date');
   const timeInputEl = document.getElementById('input-time');
   
-  const dateVal = dateInputEl && dateInputEl.value ? dateInputEl.value : state.dateStr;
-  const timeVal = timeInputEl && timeInputEl.value ? timeInputEl.value : state.timeStr;
+  const finalDate = dateInputEl && dateInputEl.value ? dateInputEl.value : state.dateStr;
+  const finalTime = timeInputEl && timeInputEl.value ? timeInputEl.value : state.timeStr;
   
-  // Formatage propre pour le JSON
+  // Formatage propre JJ/MM/AAAA
   let customDisplayDateStr = state.displayDateStr;
-  if (dateVal) {
-    const parts = dateVal.split('-');
+  if (finalDate) {
+    const parts = finalDate.split('-');
     if (parts.length === 3) {
       customDisplayDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
@@ -491,11 +491,11 @@ function validateAndSaveSession() {
   const payload = {
     schemaVersion: '1.2.0',
     sessionId: state.sessionId,
-    timestamp: `${dateVal}T${timeVal}:00`,
+    timestamp: `${finalDate}T${finalTime}:00`,
     collectedAt: {
-      date: customDisplayDateStr,
-      time: timeVal,
-      iso: new Date(`${dateVal}T${timeVal}`).toISOString()
+      date_fr: customDisplayDateStr,
+      time_local: finalTime,
+      iso_utc: new Date(`${finalDate}T${finalTime}`).toISOString()
     },
     geolocation: {
       latitude: state.gps.lat,
@@ -575,7 +575,6 @@ function saveSessionToLocalStorage(payload) {
 // ==========================================================================
 
 function bindEvents() {
-  // Délégation globale pour les clics du bandeau de succès
   document.body.addEventListener('click', (e) => {
     if (e.target.id === 'btn-dismiss-alert') {
       window.hideSuccessBanner();
@@ -739,7 +738,11 @@ function renderSessionsList() {
   }
 
   container.innerHTML = sessions.map(s => {
-    const dateAffichee = s.collectedAt && s.collectedAt.date ? s.collectedAt.date : s.timestamp;
+    // Affichage explicite de l'heure saisie pour vous rassurer
+    const dateAffichee = s.collectedAt && s.collectedAt.date_fr 
+      ? `${s.collectedAt.date_fr} à ${s.collectedAt.time_local}` 
+      : s.timestamp.replace('T', ' à ');
+      
     return `
       <div style="background:#f9f9f9; border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
