@@ -515,4 +515,328 @@ function validateAndSaveSession() {
     poids_g: poidsVal,
     troncCommun: {
       communeLieuDit: lieuDit,
-      altitudeM
+      altitudeMeters: Number(altitudeStr),
+      materielType: materielType,
+      quantite: quantiteVal,
+      quantiteLibelle: labelQuantiteEl ? labelQuantiteEl.textContent : 'Quantité récoltée',
+      poids_g: poidsVal,
+    },
+    vegetalLocal: isVLActive ? {
+      eunisHabitat: eunisHabitat,
+      conditionsEcologiques: {
+        ph: ph,
+        humidite: humidite,
+      },
+      nbIndividusCollectes: nbIndividus,
+      confirmation25PourcentMax: prelevement25,
+    } : null,
+    mfr: isMFRActive ? {
+      categorieMFR: categorieMFR,
+      codePeuplementBase: codePeuplement.toUpperCase(),
+    } : null,
+    photoStation: {
+      image: currentPhotoData || null,
+      coordonnees: currentPhotoCoords || null,
+      dateCapture: new Date().toISOString()
+    },
+    sync: {
+      status: 'pending',
+      savedLocallyAt: new Date().toISOString(),
+    }
+  };
+
+  saveSessionToLocalStorage(payload);
+  state.lastSavedPayload = payload;
+  showSuccessBanner(state.sessionId);
+  updateSessionsCountBadge();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function getStoredSessions() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveSessionToLocalStorage(payload) {
+  const sessions = getStoredSessions();
+  sessions.unshift(payload);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+}
+
+// ==========================================================================
+// 7. ÉVÉNEMENTS DU DOM
+// ==========================================================================
+
+function bindEvents() {
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'btn-dismiss-alert') {
+      window.hideSuccessBanner();
+    }
+    if (e.target.id === 'btn-alert-new' || e.target.id === 'btn-new-session') {
+      window.initNewSession();
+    }
+  });
+
+  const photoInput = document.getElementById('station-photo');
+  if (photoInput) photoInput.addEventListener('change', handlePhotoCapture);
+
+  const speciesSelect = document.getElementById('species-select');
+  if (speciesSelect) {
+    speciesSelect.addEventListener('change', (e) => onSpeciesChanged(e.target));
+  }
+
+  document.querySelectorAll('input[name="regulatoryObjective"]').forEach(radio => {
+    radio.addEventListener('change', (e) => setRegulatoryObjective(e.target.value));
+  });
+
+  const btnRefreshGps = document.getElementById('btn-refresh-gps');
+  if (btnRefreshGps) btnRefreshGps.addEventListener('click', acquireGpsLocation);
+
+  const btnSimulateGps = document.getElementById('btn-simulate-gps');
+  if (btnSimulateGps) btnSimulateGps.addEventListener('click', simulateGpsLocation);
+
+  const btnUseGpsAlt = document.getElementById('btn-use-gps-alt');
+  if (btnUseGpsAlt) {
+    btnUseGpsAlt.addEventListener('click', () => {
+      if (state.gps.alt !== null) {
+        document.getElementById('input-altitude').value = Math.round(state.gps.alt);
+      }
+    });
+  }
+
+  const selectMateriel = document.getElementById('select-materiel-type');
+  if (selectMateriel) {
+    selectMateriel.addEventListener('change', (e) => {
+      document.getElementById('input-materiel-type').value = e.target.value;
+      document.querySelectorAll('.chip-materiel').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-value') === e.target.value);
+      });
+      updateDynamicQuantite(e.target.value);
+    });
+  }
+
+  document.querySelectorAll('.chip-materiel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.getAttribute('data-value');
+      if (selectMateriel) { selectMateriel.value = val; selectMateriel.dispatchEvent(new Event('change')); }
+    });
+  });
+
+  document.querySelectorAll('#ph-group .btn-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#ph-group .btn-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('input-ph').value = btn.getAttribute('data-value');
+      document.getElementById('selected-ph-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
+    });
+  });
+
+  document.querySelectorAll('#humidity-group .btn-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#humidity-group .btn-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('input-humidity').value = btn.getAttribute('data-value');
+      document.getElementById('selected-hum-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
+    });
+  });
+
+  const btnMinus = document.getElementById('btn-minus-ind');
+  if (btnMinus) btnMinus.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 1) - 1));
+  
+  const btnPlus = document.getElementById('btn-plus-ind');
+  if (btnPlus) btnPlus.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 1) + 1));
+  
+  const btnAdd5 = document.getElementById('btn-add-5');
+  if (btnAdd5) btnAdd5.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 0) + 5));
+  
+  const btnAdd10 = document.getElementById('btn-add-10');
+  if (btnAdd10) btnAdd10.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 0) + 10));
+  
+  const btnSet30 = document.getElementById('btn-set-30');
+  if (btnSet30) btnSet30.addEventListener('click', () => setIndividusCount(30));
+
+  document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('input-mfr-cat').value = btn.getAttribute('data-value');
+      document.getElementById('selected-mfr-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
+    });
+  });
+  
+  document.querySelectorAll('.chip-code').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inputPeuplement = document.getElementById('input-peuplement');
+      if (inputPeuplement) {
+        inputPeuplement.value = btn.getAttribute('data-code');
+      }
+    });
+  });
+
+  const btnSave = document.getElementById('btn-save-session');
+  if (btnSave) btnSave.addEventListener('click', validateAndSaveSession);
+
+  const btnOpenHistory = document.getElementById('btn-open-history');
+  if (btnOpenHistory) btnOpenHistory.addEventListener('click', openSessionsDrawer);
+
+  const btnCloseDrawer = document.getElementById('btn-close-drawer');
+  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeSessionsDrawer);
+
+  const btnDrawerOk = document.getElementById('btn-drawer-ok');
+  if (btnDrawerOk) btnDrawerOk.addEventListener('click', closeSessionsDrawer);
+  
+  const btnExportAll = document.getElementById('btn-export-all');
+  if (btnExportAll) btnExportAll.addEventListener('click', exportAllSessionsJson);
+
+  const btnCloseJson = document.getElementById('btn-close-json');
+  if (btnCloseJson) btnCloseJson.addEventListener('click', () => document.getElementById('json-viewer-box').style.display = 'none');
+
+  const btnViewLastJson = document.getElementById('btn-view-last-json');
+  if (btnViewLastJson) btnViewLastJson.addEventListener('click', () => {
+    if (state.lastSavedPayload) {
+      openSessionsDrawer();
+      setTimeout(() => window.viewSessionJson(state.lastSavedPayload.sessionId), 150);
+    }
+  });
+}
+
+// ==========================================================================
+// 8. TIROIR DE SESSIONS ET AFFICHAGE JSON
+// ==========================================================================
+
+function openSessionsDrawer() {
+  renderSessionsList();
+  const drawer = document.getElementById('drawer-sessions');
+  if (drawer) drawer.style.display = 'flex';
+}
+
+function closeSessionsDrawer() {
+  const drawer = document.getElementById('drawer-sessions');
+  if (drawer) drawer.style.display = 'none';
+  const jsonBox = document.getElementById('json-viewer-box');
+  if (jsonBox) jsonBox.style.display = 'none';
+}
+
+function renderSessionsList() {
+  const sessions = getStoredSessions();
+  const container = document.getElementById('sessions-list-container');
+  const countEl = document.getElementById('modal-sessions-count');
+  if (countEl) countEl.textContent = sessions.length;
+
+  if (!container) return;
+
+  if (sessions.length === 0) {
+    container.innerHTML = `<p style="text-align:center; color:#666; padding: 20px;">Aucune session enregistrée.</p>`;
+    return;
+  }
+
+  container.innerHTML = sessions.map(s => {
+    const dateAffichee = s.collectedAt && s.collectedAt.date_fr 
+      ? `${s.collectedAt.date_fr} à ${s.collectedAt.time_local}` 
+      : s.timestamp.replace('T', ' à ');
+      
+    return `
+      <div style="background:#f9f9f9; border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>${s.sessionId}</strong>
+          <span style="font-size:0.85rem; color:#666;">${dateAffichee}</span>
+        </div>
+        <p style="margin: 5px 0; font-size: 0.9rem;">🌱 <strong>${s.species.label}</strong></p>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button type="button" class="btn-small btn-primary-mini" onclick="window.viewSessionJson('${s.sessionId}')">📄 Voir JSON</button>
+          <button type="button" class="btn-small" style="color:#d9534f;" onclick="window.deleteSessionRecord('${s.sessionId}')">🗑️ Supprimer</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.viewSessionJson = function(sessionId) {
+  const session = getStoredSessions().find(s => s.sessionId === sessionId);
+  if (!session) return;
+  state.viewingSession = session;
+  const jsonBox = document.getElementById('json-viewer-box');
+  const jsonContent = document.getElementById('json-content');
+  const jsonTitle = document.getElementById('json-title');
+
+  if (jsonTitle) jsonTitle.textContent = `JSON : ${session.sessionId}`;
+  if (jsonContent) jsonContent.textContent = JSON.stringify(session, null, 2);
+  if (jsonBox) jsonBox.style.display = 'block';
+  jsonBox.scrollIntoView({ behavior: 'smooth' });
+};
+
+window.deleteSessionRecord = function(sessionId) {
+  if (confirm('Voulez-vous supprimer cette session ?')) {
+    const sessions = getStoredSessions().filter(s => s.sessionId !== sessionId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    renderSessionsList();
+    updateSessionsCountBadge();
+  }
+};
+
+function exportAllSessionsJson() {
+  const sessions = getStoredSessions();
+  if (sessions.length === 0) return alert('Aucune session à exporter.');
+  const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  
+  a.download = `sessions-recolte-${dd}-${mm}-${yyyy}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ==========================================================================
+// 9. UTILITAIRES ET DÉMARRAGE
+// ==========================================================================
+
+function updateNetworkStatus() {
+  const dot = document.getElementById('network-dot');
+  const label = document.getElementById('network-text');
+  if (navigator.onLine) {
+    if (dot) dot.className = 'status-dot online';
+    if (label) label.textContent = 'Connecté';
+  } else {
+    if (dot) dot.className = 'status-dot offline';
+    if (label) label.textContent = 'Hors-ligne';
+  }
+}
+
+function updateSessionsCountBadge() {
+  const sessions = getStoredSessions();
+  const badge = document.getElementById('sessions-counter');
+  if (badge) {
+    badge.textContent = sessions.length;
+    badge.style.display = sessions.length > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function showSuccessBanner(id) {
+  const banner = document.getElementById('success-banner');
+  if (document.getElementById('alert-session-id')) document.getElementById('alert-session-id').textContent = `REF: ${id}`;
+  if (banner) banner.style.display = 'block';
+}
+
+window.hideSuccessBanner = function() { 
+  const banner = document.getElementById('success-banner');
+  if (banner) banner.style.display = 'none'; 
+};
+
+function showErrorBanner(errors) {
+  const banner = document.getElementById('error-banner');
+  const list = document.getElementById('error-list');
+  if (list) list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+  if (banner) banner.style.display = 'block';
+}
+
+function hideErrorBanner() { if (document.getElementById('error-banner')) document.getElementById('error-banner').style.display = 'none'; }
+
+document.addEventListener('DOMContentLoaded', initApp);
