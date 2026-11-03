@@ -98,15 +98,15 @@
         </div>
 
         <div class="gps-terminal">
-          <div class="gps-row">
-            <span>Latitude :</span>
-            <strong id="display-lat" class="text-green">-</strong>
+          <div class="gps-row" style="align-items: center;">
+            <label for="input-lat">Latitude :</label>
+            <input type="number" id="input-lat" step="any" class="form-control" style="width: 140px; background: rgba(255,255,255,0.1); border: 1px solid #4cd137; color: #4cd137; padding: 4px 8px; text-align: right; font-family: monospace;">
           </div>
-          <div class="gps-row">
-            <span>Longitude :</span>
-            <strong id="display-lng" class="text-green">-</strong>
+          <div class="gps-row" style="align-items: center; margin-top: 8px;">
+            <label for="input-lng">Longitude :</label>
+            <input type="number" id="input-lng" step="any" class="form-control" style="width: 140px; background: rgba(255,255,255,0.1); border: 1px solid #4cd137; color: #4cd137; padding: 4px 8px; text-align: right; font-family: monospace;">
           </div>
-          <div class="gps-row-small">
+          <div class="gps-row-small" style="margin-top: 12px;">
             <span>Précision capteur :</span>
             <span id="display-acc">-</span>
           </div>
@@ -143,73 +143,33 @@
           </label>
           <select id="species-select" class="form-control select-large" onchange="onSpeciesChanged(this)">
             <option value="" disabled selected>-- Sélectionnez une essence --</option>
-            
-            <!-- Érables -->
             <option value="Acer campestre" data-regime="both" data-mfr-cat="Identifiée">Érable champêtre (Acer campestre)</option>
             <option value="Acer monspessulanum" data-regime="vl">Érable de Montpellier (Acer monspessulanum)</option>
             <option value="Acer platanoides" data-regime="both" data-mfr-cat="Identifiée">Érable plane (Acer platanoides)</option>
             <option value="Acer pseudoplatanus" data-regime="both" data-mfr-cat="Sélectionnée">Érable sycomore (Acer pseudoplatanus)</option>
-            
-            <!-- Aulne -->
             <option value="Alnus glutinosa" data-regime="both" data-mfr-cat="Identifiée">Aulne glutineux (Alnus glutinosa)</option>
-            
-            <!-- Charme -->
             <option value="Carpinus betulus" data-regime="both" data-mfr-cat="Identifiée">Charme (Carpinus betulus)</option>
-            
-            <!-- Cornouillers -->
             <option value="Cornus mas" data-regime="vl">Cornouiller mâle (Cornus mas)</option>
             <option value="Cornus sanguinea" data-regime="vl">Cornouiller sanguin (Cornus sanguinea)</option>
-            
-            <!-- Noisetier -->
             <option value="Corylus avellana" data-regime="vl">Noisetier (Corylus avellana)</option>
-            
-            <!-- Aubépine -->
             <option value="Crataegus monogyna" data-regime="vl">Aubépine à un style (Crataegus monogyna)</option>
-            
-            <!-- Fusain -->
             <option value="Euonymus europaeus" data-regime="vl">Fusain d’Europe (Euonymus europaeus)</option>
-            
-            <!-- Hêtre -->
             <option value="Fagus sylvatica" data-regime="both" data-mfr-cat="Sélectionnée">Hêtre (Fagus sylvatica)</option>
-            
-            <!-- Frêne -->
             <option value="Fraxinus excelsior" data-regime="both" data-mfr-cat="Sélectionnée">Frêne commun (Fraxinus excelsior)</option>
-            
-            <!-- Houx -->
             <option value="Ilex aquifolium" data-regime="vl">Houx (Ilex aquifolium)</option>
-            
-            <!-- Troène -->
             <option value="Ligustrum vulgare" data-regime="vl">Troène (Ligustrum vulgare)</option>
-            
-            <!-- Pommier & Poirier -->
             <option value="Malus sylvestris" data-regime="both" data-mfr-cat="Identifiée">Pommier sauvage (Malus sylvestris)</option>
             <option value="Pyrus communis" data-regime="vl">Poirier commun (Pyrus communis)</option>
-            
-            <!-- Prunus -->
             <option value="Prunus avium" data-regime="both" data-mfr-cat="Sélectionnée">Merisier (Prunus avium)</option>
             <option value="Prunus spinosa" data-regime="vl">Prunellier (Prunus spinosa)</option>
-            
-            <!-- Chênes -->
             <option value="Quercus petraea" data-regime="both" data-mfr-cat="Sélectionnée">Chêne sessile (Quercus petraea)</option>
             <option value="Quercus robur" data-regime="both" data-mfr-cat="Sélectionnée">Chêne pédonculé (Quercus robur)</option>
-            
-            <!-- Nerprun -->
             <option value="Rhamnus cathartica" data-regime="vl">Nerprun officinal (Rhamnus cathartica)</option>
-            
-            <!-- Groseillier -->
             <option value="Ribes rubrum" data-regime="vl">Groseillier (Ribes rubrum)</option>
-            
-            <!-- Rosier -->
             <option value="Rosa canina" data-regime="vl">Rosier des chiens (Rosa canina)</option>
-            
-            <!-- Sureau -->
             <option value="Sambucus nigra" data-regime="vl">Sureau noir (Sambucus nigra)</option>
-            
-            <!-- Sorbiers & Alisier -->
             <option value="Sorbus aucuparia" data-regime="vl">Sorbier des oiseleurs (Sorbus aucuparia)</option>
             <option value="Sorbus torminalis" data-regime="both" data-mfr-cat="Identifiée">Alisier torminal (Sorbus torminalis)</option>
-            
-            <!-- Tilleuls -->
             <option value="Tilia cordata" data-regime="both" data-mfr-cat="Identifiée">Tilleul à petites feuilles (Tilia cordata)</option>
             <option value="Tilia platyphyllos" data-regime="both" data-mfr-cat="Identifiée">Tilleul à grandes feuilles (Tilia platyphyllos)</option>
           </select>
@@ -560,7 +520,6 @@
     </div>
   </div>
 
-  <!-- LIEN VERS LE FICHIER JAVASCRIPT -->
   <script src="./app.js"></script>
 </body>
 </html>
