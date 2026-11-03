@@ -1,842 +1,562 @@
-/**
- * LES PETITES FORÊTS - PWA COLLECTE TERRAIN
- * Stockage LocalStorage 100% Hors-Ligne & Géocodage
- */
-
-const STORAGE_KEY = 'semeur_harvest_sessions_v1';
-
-const state = {
-  sessionId: '',
-  dateStr: '',
-  displayDateStr: '', // Format de repli
-  timeStr: '',
-  gps: { lat: null, lng: null, acc: null, alt: null, status: 'idle', error: '', commune: null },
-  currentObjective: 'VL',
-  lastSavedPayload: null,
-  viewingSession: null,
-};
-
-// ==========================================================================
-// 1. INITIALISATION & GESTION DE SESSION
-// ==========================================================================
-
-function initApp() {
-  window.initNewSession();
-  bindEvents();
-  updateNetworkStatus();
-  updateSessionsCountBadge();
-}
-
-function generateSessionId() {
-  const d = new Date();
-  const ymd = d.toISOString().split('T')[0].replace(/-/g, '');
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `REC-${ymd}-${rand}`;
-}
-
-window.initNewSession = function() {
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yyyy = now.getFullYear();
-
-  state.sessionId = generateSessionId();
-  state.dateStr = `${yyyy}-${mm}-${dd}`;
-  state.displayDateStr = `${dd}/${mm}/${yyyy}`;
-  state.timeStr = now.toTimeString().substring(0, 5);
-
-  const inputDate = document.getElementById('input-date');
-  const inputTime = document.getElementById('input-time');
-  if (inputDate) inputDate.value = state.dateStr;
-  if (inputTime) inputTime.value = state.timeStr;
-
-  const lieuDitInput = document.getElementById('input-lieudit');
-  if (lieuDitInput) { lieuDitInput.value = ''; delete lieuDitInput.dataset.autoFilled; }
-
-  const lieuDitHint = document.getElementById('lieudit-hint');
-  if (lieuDitHint) { lieuDitHint.style.display = 'none'; lieuDitHint.textContent = ''; }
-
-  const altInput = document.getElementById('input-altitude');
-  if (altInput) altInput.value = '';
-
-  const quantiteInput = document.getElementById('input-quantite');
-  if (quantiteInput) quantiteInput.value = '';
-
-  const poidsInput = document.getElementById('input-poids-g');
-  if (poidsInput) poidsInput.value = '';
-
-  const selectEunis = document.getElementById('select-eunis');
-  if (selectEunis) selectEunis.value = 'Forêts';
-
-  const chk25 = document.getElementById('chk-25');
-  if (chk25) chk25.checked = true;
-
-  const inputPeuplement = document.getElementById('input-peuplement');
-  if (inputPeuplement) inputPeuplement.value = 'FR-NOR-01';
-
-  const selectMateriel = document.getElementById('select-materiel-type');
-  if (selectMateriel) selectMateriel.value = 'Graines';
-
-  const hiddenMateriel = document.getElementById('input-materiel-type');
-  if (hiddenMateriel) hiddenMateriel.value = 'Graines';
-
-  document.querySelectorAll('.chip-materiel').forEach(c => {
-    c.classList.toggle('active', c.getAttribute('data-value') === 'Graines');
-  });
-
-  updateDynamicQuantite('Graines');
-  setIndividusCount(1);
-  window.hideSuccessBanner();
-  hideErrorBanner();
+/* ==========================================================================
+   VARIABLES & RESET
+   ========================================================================== */
+:root {
+  --primary: #1b4332;
+  --primary-light: #2d6a4f;
+  --secondary: #E6EBE1; /* Vert sauge Les Petites Forêts */
+  --bg-color: #f4f7f6;
+  --surface: #ffffff;
+  --text-main: #2c3e50;
+  --text-muted: #7f8c8d;
+  --border: #e0e6ed;
   
-  currentPhotoData = null;
-  currentPhotoCoords = null;
-  const photoPreview = document.getElementById('photo-preview');
-  const photoContainer = document.getElementById('photo-preview-container');
-  const photoInput = document.getElementById('station-photo');
-  if (photoPreview) photoPreview.src = '';
-  if (photoContainer) photoContainer.style.display = 'none';
-  if (photoInput) photoInput.value = '';
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-
-  acquireGpsLocation();
-};
-
-// ==========================================================================
-// 2. GÉOLOCALISATION GPS
-// ==========================================================================
-
-function acquireGpsLocation() {
-  const badge = document.getElementById('gps-status-badge');
-  const msgEl = document.getElementById('gps-msg');
-
-  if (!navigator.geolocation) {
-    state.gps.status = 'error';
-    state.gps.error = 'Géolocalisation non supportée.';
-    if (badge) { badge.className = 'badge-gps badge-gps-err'; badge.textContent = 'GPS non supporté'; }
-    if (msgEl) { msgEl.textContent = state.gps.error; msgEl.style.display = 'block'; }
-    return;
-  }
-
-  state.gps.status = 'acquiring';
-  if (badge) { badge.className = 'badge-gps badge-gps-acquiring'; badge.textContent = 'Recherche satellite...'; }
-  if (msgEl) msgEl.style.display = 'none';
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      state.gps.lat = pos.coords.latitude;
-      state.gps.lng = pos.coords.longitude;
-      state.gps.acc = pos.coords.accuracy;
-      state.gps.alt = pos.coords.altitude;
-      state.gps.status = 'acquired';
-      renderGpsDisplay();
-
-      const altBtn = document.getElementById('btn-use-gps-alt');
-      const gpsAltVal = document.getElementById('gps-alt-val');
-      
-      if (altBtn && gpsAltVal) {
-        altBtn.style.display = 'inline-block';
-        if (state.gps.alt !== null) {
-          gpsAltVal.textContent = Math.round(state.gps.alt);
-          altBtn.style.opacity = '1';
-          altBtn.style.pointerEvents = 'auto';
-        } else {
-          gpsAltVal.textContent = 'non détectée';
-          altBtn.style.opacity = '0.5';
-          altBtn.style.pointerEvents = 'none';
-        }
-      }
-
-      reverseGeocode(state.gps.lat, state.gps.lng);
-    },
-    (err) => {
-      state.gps.status = 'error';
-      state.gps.error = 'Signal GPS trop faible. Utilisez "Coordonnées test".';
-      if (badge) { badge.className = 'badge-gps badge-gps-err'; badge.textContent = 'GPS indisponible'; }
-      if (msgEl) { msgEl.textContent = state.gps.error; msgEl.style.display = 'block'; }
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-  );
-}
-
-function simulateGpsLocation() {
-  state.gps.lat = 46.652145 + (Math.random() - 0.5) * 0.005;
-  state.gps.lng = 2.711832 + (Math.random() - 0.5) * 0.005;
-  state.gps.acc = 4.5;
-  state.gps.alt = 255;
-  state.gps.status = 'acquired';
+  --vl-color: #27ae60;
+  --vl-bg: #eafaf1;
+  --mfr-color: #d35400;
+  --mfr-bg: #fdf2e9;
+  --amber: #f39c12;
   
-  const gpsMsg = document.getElementById('gps-msg');
-  if (gpsMsg) gpsMsg.style.display = 'none';
-  renderGpsDisplay();
-  
-  const altBtn = document.getElementById('btn-use-gps-alt');
-  const gpsAltVal = document.getElementById('gps-alt-val');
-  if (altBtn && gpsAltVal) {
-    gpsAltVal.textContent = '255';
-    altBtn.style.display = 'inline-block';
-    altBtn.style.opacity = '1';
-    altBtn.style.pointerEvents = 'auto';
-  }
-  
-  const altInput = document.getElementById('input-altitude');
-  if (altInput && !altInput.value) altInput.value = '255';
-  
-  reverseGeocode(state.gps.lat, state.gps.lng);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
-function renderGpsDisplay() {
-  const badge = document.getElementById('gps-status-badge');
-  if (badge) { badge.className = 'badge-gps badge-gps-ok'; badge.textContent = 'Signal GPS fixé ✓'; }
-  const latEl = document.getElementById('display-lat');
-  const lngEl = document.getElementById('display-lng');
-  const accEl = document.getElementById('display-acc');
-  const altGpsEl = document.getElementById('display-alt-gps');
-  if (latEl) latEl.textContent = state.gps.lat ? state.gps.lat.toFixed(6) + '° N' : '-';
-  if (lngEl) lngEl.textContent = state.gps.lng ? state.gps.lng.toFixed(6) + '° E' : '-';
-  if (accEl) accEl.textContent = state.gps.acc ? `± ${Math.round(state.gps.acc)} m` : 'N/A';
-  if (altGpsEl) altGpsEl.textContent = state.gps.alt ? `${Math.round(state.gps.alt)} m` : 'Non fourni';
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-async function reverseGeocode(lat, lng) {
-  const lieuDitInput = document.getElementById('input-lieudit');
-  const lieuDitHint = document.getElementById('lieudit-hint');
-  if (!lat || !lng || !navigator.onLine) return;
-
-  try {
-    const url = `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lng}&fields=nom`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (Array.isArray(data) && data.length > 0 && data[0].nom) {
-      const communeNom = data[0].nom;
-      state.gps.commune = communeNom;
-      if (lieuDitInput && (!lieuDitInput.value.trim() || lieuDitInput.dataset.autoFilled === 'true')) {
-        lieuDitInput.value = communeNom;
-        lieuDitInput.dataset.autoFilled = 'true';
-      }
-      if (lieuDitHint) {
-        lieuDitHint.className = 'field-hint text-green';
-        lieuDitHint.textContent = `📍 Commune détectée via GPS : ${communeNom}`;
-        lieuDitHint.style.display = 'block';
-      }
-    }
-  } catch (err) {
-    state.gps.commune = null;
-  }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+  padding-bottom: 90px; /* Espace pour la barre flottante */
+  -webkit-font-smoothing: antialiased;
 }
 
-// ==========================================================================
-// 3. LOGIQUE CONDITIONNELLE ESPÈCES & MFR INTELLIGENT
-// ==========================================================================
-
-function onSpeciesChanged(selectElement) {
-  const selectedOption = selectElement.options[selectElement.selectedIndex];
-  const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
-
-  const cardMfr = document.getElementById('card-reg-mfr');
-  const cardBoth = document.getElementById('card-reg-both');
-  const lockedBadge = document.getElementById('badge-locked-vl');
-  const noticeVl = document.getElementById('notice-vl-only');
-
-  if (regime === 'vl') {
-    setRegulatoryObjective('VL');
-    if (cardMfr) cardMfr.classList.add('disabled');
-    if (cardBoth) cardBoth.classList.add('disabled');
-    if (lockedBadge) lockedBadge.style.display = 'inline-block';
-    if (noticeVl) noticeVl.style.display = 'block';
-  } else {
-    setRegulatoryObjective('BOTH');
-    if (cardMfr) cardMfr.classList.remove('disabled');
-    if (cardBoth) cardBoth.classList.remove('disabled');
-    if (lockedBadge) lockedBadge.style.display = 'none';
-    if (noticeVl) noticeVl.style.display = 'none';
-    
-    autoSelectMfrCategory(selectedOption);
-  }
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+.app-header {
+  background-color: var(--primary);
+  color: white;
+  padding: 15px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-function autoSelectMfrCategory(selectedOption) {
-  if (!selectedOption) return;
-  const defaultCategory = selectedOption.getAttribute('data-mfr-cat') || 'Identifiée';
-  
-  document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-value') === defaultCategory);
-  });
-  
-  const hiddenMfrCat = document.getElementById('input-mfr-cat');
-  if (hiddenMfrCat) hiddenMfrCat.value = defaultCategory;
-  
-  const selectedMfrText = document.getElementById('selected-mfr-text');
-  if (selectedMfrText) selectedMfrText.textContent = 'Sélectionné : ' + defaultCategory;
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-function setRegulatoryObjective(objective) {
-  state.currentObjective = objective;
-  document.querySelectorAll('.radio-card').forEach(card => {
-    const radio = card.querySelector('input[type="radio"]');
-    if (radio) {
-      radio.checked = (radio.value === objective);
-      card.classList.toggle('active', radio.checked);
-    }
-  });
-  refreshConditionalSections();
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-function refreshConditionalSections() {
-  const selectElement = document.getElementById('species-select');
-  const selectedOption = selectElement ? selectElement.options[selectElement.selectedIndex] : null;
-  const regime = selectedOption ? selectedOption.getAttribute('data-regime') : 'both';
-  const effectiveObjective = (regime === 'vl') ? 'VL' : state.currentObjective;
-
-  const showVL = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
-  const showMFR = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
-
-  const sectionVl = document.getElementById('section-vl');
-  const sectionMfr = document.getElementById('section-mfr');
-  if (sectionVl) sectionVl.style.display = showVL ? 'block' : 'none';
-  if (sectionMfr) sectionMfr.style.display = showMFR ? 'block' : 'none';
+.brand-icon {
+  font-size: 1.8rem;
 }
 
-// ==========================================================================
-// 4. MODULE PHOTO GÉOLOCALISÉE (AVEC COMPRESSION)
-// ==========================================================================
-
-let currentPhotoData = null;
-let currentPhotoCoords = null;
-
-function handlePhotoCapture(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 800;
-      const MAX_HEIGHT = 800;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-      } else {
-        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-      }
-      canvas.width = width;
-      canvas.height = height;
-      
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      currentPhotoData = canvas.toDataURL('image/jpeg', 0.7);
-
-      const preview = document.getElementById('photo-preview');
-      const container = document.getElementById('photo-preview-container');
-      const gpsInfo = document.getElementById('photo-gps-info');
-      
-      if (preview) preview.src = currentPhotoData;
-      if (container) container.style.display = 'block';
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude.toFixed(6);
-            const lon = position.coords.longitude.toFixed(6);
-            if (gpsInfo) gpsInfo.innerHTML = `📍 GPS attaché : Lat ${lat}, Lon ${lon}`;
-            currentPhotoCoords = { latitude: lat, longitude: lon };
-          },
-          () => {
-            if (gpsInfo) gpsInfo.innerHTML = `⚠️ Photo chargée sans GPS`;
-            currentPhotoCoords = null;
-          },
-          { enableHighAccuracy: true }
-        );
-      }
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-// ==========================================================================
-// 5. QUANTITÉ DYNAMIQUE ET INDIVIDUS
-// ==========================================================================
-
-function updateDynamicQuantite(materielType) {
-  const inputQuantite = document.getElementById('input-quantite');
-  const labelQuantite = document.getElementById('label-quantite');
-  if (materielType === 'Boutures') {
-    if (labelQuantite) labelQuantite.textContent = 'Nombre de boutures';
-    if (inputQuantite) inputQuantite.placeholder = 'Nombre de boutures (Optionnel)';
-  } else if (materielType === 'Plantes entières') {
-    if (labelQuantite) labelQuantite.textContent = 'Nombre de plantes entières';
-    if (inputQuantite) inputQuantite.placeholder = 'Nombre de plantes entières (Optionnel)';
-  } else {
-    if (labelQuantite) labelQuantite.textContent = 'Quantité récoltée';
-    if (inputQuantite) inputQuantite.placeholder = 'Quantité de graines (Optionnel)';
-  }
+.brand h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.5px;
 }
 
-function setIndividusCount(val) {
-  const count = Math.max(1, parseInt(val, 10) || 1);
-  const inputInd = document.getElementById('input-individus');
-  const valInd = document.getElementById('val-individus');
-  if (inputInd) inputInd.value = count;
-  if (valInd) valInd.textContent = count;
-  
-  const badge = document.getElementById('badge-seuil');
-  if (badge) {
-    if (count >= 30) {
-      badge.className = 'badge-threshold valid';
-      badge.textContent = '✓ Seuil validé (≥ 30)';
-    } else {
-      badge.className = 'badge-threshold invalid';
-      badge.textContent = '⚠️ Seuil incomplet (< 30 requis)';
-    }
-  }
+.badge-pwa {
+  background: rgba(255,255,255,0.2);
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
 }
 
-// ==========================================================================
-// 6. SAUVEGARDE JSON EXHAUSTIVE & LOCAL STORAGE
-// ==========================================================================
-
-function validateAndSaveSession() {
-  hideErrorBanner();
-  window.hideSuccessBanner();
-
-  const errors = [];
-  const speciesSelect = document.getElementById('species-select');
-  const species = speciesSelect ? speciesSelect.value : '';
-  const lieuDit = document.getElementById('input-lieudit').value.trim();
-  const altitudeStr = document.getElementById('input-altitude').value.trim();
-  const materielType = document.getElementById('input-materiel-type').value;
-
-  const quantiteInput = document.getElementById('input-quantite');
-  const quantiteStr = quantiteInput ? quantiteInput.value.trim() : '';
-  const quantiteVal = quantiteStr !== '' ? Number(quantiteStr) : null;
-
-  const poidsInput = document.getElementById('input-poids-g');
-  const poidsStr = poidsInput ? poidsInput.value.trim() : '';
-  const poidsVal = poidsStr !== '' ? Number(poidsStr) : null;
-  
-  if (!species) errors.push("L'espèce ciblée est obligatoire.");
-  if (!lieuDit) errors.push('Le champ Commune / Lieu-dit de récolte est obligatoire.');
-  if (!altitudeStr || isNaN(Number(altitudeStr))) errors.push("L'altitude en mètres est obligatoire.");
-
-  const isCornus = species.includes('Cornus sanguinea');
-  const effectiveObjective = isCornus ? 'VL' : state.currentObjective;
-  const isVLActive = effectiveObjective === 'VL' || effectiveObjective === 'BOTH';
-  const isMFRActive = effectiveObjective === 'MFR' || effectiveObjective === 'BOTH';
-
-  let eunisHabitat = '';
-  let ph = '';
-  let humidite = '';
-  let nbIndividus = 0;
-  let prelevement25 = false;
-
-  if (isVLActive) {
-    eunisHabitat = document.getElementById('select-eunis').value;
-    ph = document.getElementById('input-ph').value;
-    humidite = document.getElementById('input-humidity').value;
-    nbIndividus = parseInt(document.getElementById('input-individus').value, 10) || 0;
-    prelevement25 = document.getElementById('chk-25').checked;
-
-    if (!eunisHabitat) errors.push("Le type d'habitat EUNIS (milieu de collecte) est obligatoire pour Végétal Local.");
-    if (!ph) errors.push('Le pH du sol estimé est requis pour Végétal Local.');
-    if (!humidite) errors.push("L'humidité du sol est requise pour Végétal Local.");
-    if (nbIndividus < 1) errors.push("Le nombre d'individus collectés doit être au moins de 1.");
-    if (!prelevement25) errors.push('Vous devez certifier ne pas avoir prélevé plus de 25% de la ressource (Charte Végétal Local).');
-  }
-
-  let categorieMFR = '';
-  let codePeuplement = '';
-
-  if (isMFRActive) {
-    categorieMFR = document.getElementById('input-mfr-cat').value;
-    codePeuplement = document.getElementById('input-peuplement').value.trim();
-
-    if (!categorieMFR) errors.push('La catégorie MFR est obligatoire.');
-    if (!codePeuplement) errors.push('Le code du peuplement de base est obligatoire (ex: FR-XX-YY).');
-  }
-
-  if (errors.length > 0) {
-    showErrorBanner(errors);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  const labelQuantiteEl = document.getElementById('label-quantite');
-  
-  // Lecture stricte des champs à l'écran (et nettoyage d'éventuelles secondes cachées par le navigateur)
-  const finalDate = document.getElementById('input-date').value || state.dateStr;
-  let finalTime = document.getElementById('input-time').value || state.timeStr;
-  if (finalTime.length > 5) finalTime = finalTime.substring(0, 5); // Force le format HH:MM
-  
-  // Formatage propre JJ/MM/AAAA
-  let customDisplayDateStr = state.displayDateStr;
-  if (finalDate) {
-    const parts = finalDate.split('-');
-    if (parts.length === 3) {
-      customDisplayDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-  }
-
-  const payload = {
-    schemaVersion: '1.2.0',
-    sessionId: state.sessionId,
-    timestamp: `${finalDate}T${finalTime}:00`,
-    collectedAt: {
-      date_fr: customDisplayDateStr,
-      time_local: finalTime,
-      iso_utc: new Date(`${finalDate}T${finalTime}`).toISOString()
-    },
-    geolocation: {
-      latitude: state.gps.lat,
-      longitude: state.gps.lng,
-      accuracyMeters: state.gps.acc,
-      altitudeGps: state.gps.alt,
-      status: state.gps.status,
-      commune: state.gps.commune || lieuDit,
-    },
-    species: {
-      label: species,
-      scientificName: species.split('(')[0].trim(),
-    },
-    regulation: {
-      selectedObjective: effectiveObjective,
-      appliedRegulations: [
-        ...(isVLActive ? ['Végétal Local (VL)'] : []),
-        ...(isMFRActive ? ['Matériel Forestier de Reproduction (MFR)'] : []),
-      ],
-    },
-    quantite: quantiteVal,
-    poids_g: poidsVal,
-    troncCommun: {
-      communeLieuDit: lieuDit,
-      altitudeMeters: Number(altitudeStr),
-      materielType: materielType,
-      quantite: quantiteVal,
-      quantiteLibelle: labelQuantiteEl ? labelQuantiteEl.textContent : 'Quantité récoltée',
-      poids_g: poidsVal,
-    },
-    vegetalLocal: isVLActive ? {
-      eunisHabitat: eunisHabitat,
-      conditionsEcologiques: {
-        ph: ph,
-        humidite: humidite,
-      },
-      nbIndividusCollectes: nbIndividus,
-      confirmation25PourcentMax: prelevement25,
-    } : null,
-    mfr: isMFRActive ? {
-      categorieMFR: categorieMFR,
-      codePeuplementBase: codePeuplement.toUpperCase(),
-    } : null,
-    photoStation: {
-      image: currentPhotoData || null,
-      coordonnees: currentPhotoCoords || null,
-      dateCapture: new Date().toISOString()
-    },
-    sync: {
-      status: 'pending',
-      savedLocallyAt: new Date().toISOString(),
-    }
-  };
-
-  saveSessionToLocalStorage(payload);
-  state.lastSavedPayload = payload;
-  showSuccessBanner(state.sessionId);
-  updateSessionsCountBadge();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-top: 2px;
+  opacity: 0.9;
 }
 
-function getStoredSessions() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) { return []; }
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.status-dot.online { background-color: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+.status-dot.offline { background-color: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-function saveSessionToLocalStorage(payload) {
-  const sessions = getStoredSessions();
-  sessions.unshift(payload);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+.btn-subtle {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  position: relative;
+}
+.btn-subtle:hover { background: rgba(255,255,255,0.1); }
+
+.badge-counter {
+  background: #e74c3c;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  position: absolute;
+  top: -2px;
+  right: -5px;
 }
 
-// ==========================================================================
-// 7. ÉVÉNEMENTS DU DOM
-// ==========================================================================
-
-function bindEvents() {
-  document.body.addEventListener('click', (e) => {
-    if (e.target.id === 'btn-dismiss-alert') {
-      window.hideSuccessBanner();
-    }
-    if (e.target.id === 'btn-alert-new' || e.target.id === 'btn-new-session') {
-      window.initNewSession();
-    }
-  });
-
-  const photoInput = document.getElementById('station-photo');
-  if (photoInput) photoInput.addEventListener('change', handlePhotoCapture);
-
-  const speciesSelect = document.getElementById('species-select');
-  if (speciesSelect) {
-    speciesSelect.addEventListener('change', (e) => onSpeciesChanged(e.target));
-  }
-
-  document.querySelectorAll('input[name="regulatoryObjective"]').forEach(radio => {
-    radio.addEventListener('change', (e) => setRegulatoryObjective(e.target.value));
-  });
-
-  const btnRefreshGps = document.getElementById('btn-refresh-gps');
-  if (btnRefreshGps) btnRefreshGps.addEventListener('click', acquireGpsLocation);
-
-  const btnSimulateGps = document.getElementById('btn-simulate-gps');
-  if (btnSimulateGps) btnSimulateGps.addEventListener('click', simulateGpsLocation);
-
-  const btnUseGpsAlt = document.getElementById('btn-use-gps-alt');
-  if (btnUseGpsAlt) {
-    btnUseGpsAlt.addEventListener('click', () => {
-      if (state.gps.alt !== null) {
-        document.getElementById('input-altitude').value = Math.round(state.gps.alt);
-      }
-    });
-  }
-
-  const selectMateriel = document.getElementById('select-materiel-type');
-  if (selectMateriel) {
-    selectMateriel.addEventListener('change', (e) => {
-      document.getElementById('input-materiel-type').value = e.target.value;
-      document.querySelectorAll('.chip-materiel').forEach(c => {
-        c.classList.toggle('active', c.getAttribute('data-value') === e.target.value);
-      });
-      updateDynamicQuantite(e.target.value);
-    });
-  }
-
-  document.querySelectorAll('.chip-materiel').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const val = btn.getAttribute('data-value');
-      if (selectMateriel) { selectMateriel.value = val; selectMateriel.dispatchEvent(new Event('change')); }
-    });
-  });
-
-  document.querySelectorAll('#ph-group .btn-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#ph-group .btn-toggle').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('input-ph').value = btn.getAttribute('data-value');
-      document.getElementById('selected-ph-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
-    });
-  });
-
-  document.querySelectorAll('#humidity-group .btn-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#humidity-group .btn-toggle').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('input-humidity').value = btn.getAttribute('data-value');
-      document.getElementById('selected-hum-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
-    });
-  });
-
-  const btnMinus = document.getElementById('btn-minus-ind');
-  if (btnMinus) btnMinus.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 1) - 1));
-  
-  const btnPlus = document.getElementById('btn-plus-ind');
-  if (btnPlus) btnPlus.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 1) + 1));
-  
-  const btnAdd5 = document.getElementById('btn-add-5');
-  if (btnAdd5) btnAdd5.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 0) + 5));
-  
-  const btnAdd10 = document.getElementById('btn-add-10');
-  if (btnAdd10) btnAdd10.addEventListener('click', () => setIndividusCount((parseInt(document.getElementById('input-individus').value) || 0) + 10));
-  
-  const btnSet30 = document.getElementById('btn-set-30');
-  if (btnSet30) btnSet30.addEventListener('click', () => setIndividusCount(30));
-
-  document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#mfr-category-group .mfr-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('input-mfr-cat').value = btn.getAttribute('data-value');
-      document.getElementById('selected-mfr-text').textContent = 'Sélectionné : ' + btn.getAttribute('data-value');
-    });
-  });
-  
-  document.querySelectorAll('.chip-code').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const inputPeuplement = document.getElementById('input-peuplement');
-      if (inputPeuplement) {
-        inputPeuplement.value = btn.getAttribute('data-code');
-      }
-    });
-  });
-
-  const btnSave = document.getElementById('btn-save-session');
-  if (btnSave) btnSave.addEventListener('click', validateAndSaveSession);
-
-  const btnOpenHistory = document.getElementById('btn-open-history');
-  if (btnOpenHistory) btnOpenHistory.addEventListener('click', openSessionsDrawer);
-
-  const btnCloseDrawer = document.getElementById('btn-close-drawer');
-  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeSessionsDrawer);
-
-  const btnDrawerOk = document.getElementById('btn-drawer-ok');
-  if (btnDrawerOk) btnDrawerOk.addEventListener('click', closeSessionsDrawer);
-  
-  const btnExportAll = document.getElementById('btn-export-all');
-  if (btnExportAll) btnExportAll.addEventListener('click', exportAllSessionsJson);
-
-  const btnCloseJson = document.getElementById('btn-close-json');
-  if (btnCloseJson) btnCloseJson.addEventListener('click', () => document.getElementById('json-viewer-box').style.display = 'none');
-
-  const btnViewLastJson = document.getElementById('btn-view-last-json');
-  if (btnViewLastJson) btnViewLastJson.addEventListener('click', () => {
-    if (state.lastSavedPayload) {
-      openSessionsDrawer();
-      setTimeout(() => window.viewSessionJson(state.lastSavedPayload.sessionId), 150);
-    }
-  });
+/* ==========================================================================
+   CONTENEUR PRINCIPAL & CARTES
+   ========================================================================== */
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 0 15px;
 }
 
-// ==========================================================================
-// 8. TIROIR DE SESSIONS ET AFFICHAGE JSON
-// ==========================================================================
-
-function openSessionsDrawer() {
-  renderSessionsList();
-  const drawer = document.getElementById('drawer-sessions');
-  if (drawer) drawer.style.display = 'flex';
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
-function closeSessionsDrawer() {
-  const drawer = document.getElementById('drawer-sessions');
-  if (drawer) drawer.style.display = 'none';
-  const jsonBox = document.getElementById('json-viewer-box');
-  if (jsonBox) jsonBox.style.display = 'none';
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
 }
 
-function renderSessionsList() {
-  const sessions = getStoredSessions();
-  const container = document.getElementById('sessions-list-container');
-  const countEl = document.getElementById('modal-sessions-count');
-  if (countEl) countEl.textContent = sessions.length;
+.card-icon {
+  font-size: 1.5rem;
+  background: var(--secondary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+.card-icon-vl { background: var(--vl-bg); }
+.card-icon-mfr { background: var(--mfr-bg); }
+.card-icon-amber { background: #fef5e7; }
 
-  if (!container) return;
-
-  if (sessions.length === 0) {
-    container.innerHTML = `<p style="text-align:center; color:#666; padding: 20px;">Aucune session enregistrée.</p>`;
-    return;
-  }
-
-  container.innerHTML = sessions.map(s => {
-    const dateAffichee = s.collectedAt && s.collectedAt.date_fr 
-      ? `${s.collectedAt.date_fr} à ${s.collectedAt.time_local}` 
-      : s.timestamp.replace('T', ' à ');
-      
-    return `
-      <div style="background:#f9f9f9; border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong>${s.sessionId}</strong>
-          <span style="font-size:0.85rem; color:#666;">${dateAffichee}</span>
-        </div>
-        <p style="margin: 5px 0; font-size: 0.9rem;">🌱 <strong>${s.species.label}</strong></p>
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <button type="button" class="btn-small btn-primary-mini" onclick="window.viewSessionJson('${s.sessionId}')">📄 Voir JSON</button>
-          <button type="button" class="btn-small" style="color:#d9534f;" onclick="window.deleteSessionRecord('${s.sessionId}')">🗑️ Supprimer</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+.card-header h2 {
+  font-size: 1.1rem;
+  color: var(--text-main);
+  margin-bottom: 3px;
 }
 
-window.viewSessionJson = function(sessionId) {
-  const session = getStoredSessions().find(s => s.sessionId === sessionId);
-  if (!session) return;
-  state.viewingSession = session;
-  const jsonBox = document.getElementById('json-viewer-box');
-  const jsonContent = document.getElementById('json-content');
-  const jsonTitle = document.getElementById('json-title');
-
-  if (jsonTitle) jsonTitle.textContent = `JSON : ${session.sessionId}`;
-  if (jsonContent) jsonContent.textContent = JSON.stringify(session, null, 2);
-  if (jsonBox) jsonBox.style.display = 'block';
-  jsonBox.scrollIntoView({ behavior: 'smooth' });
-};
-
-window.deleteSessionRecord = function(sessionId) {
-  if (confirm('Voulez-vous supprimer cette session ?')) {
-    const sessions = getStoredSessions().filter(s => s.sessionId !== sessionId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    renderSessionsList();
-    updateSessionsCountBadge();
-  }
-};
-
-function exportAllSessionsJson() {
-  const sessions = getStoredSessions();
-  if (sessions.length === 0) return alert('Aucune session à exporter.');
-  const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  
-  a.download = `sessions-recolte-${dd}-${mm}-${yyyy}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+.card-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
-// ==========================================================================
-// 9. UTILITAIRES ET DÉMARRAGE
-// ==========================================================================
-
-function updateNetworkStatus() {
-  const dot = document.getElementById('network-dot');
-  const label = document.getElementById('network-text');
-  if (navigator.onLine) {
-    if (dot) dot.className = 'status-dot online';
-    if (label) label.textContent = 'Connecté';
-  } else {
-    if (dot) dot.className = 'status-dot offline';
-    if (label) label.textContent = 'Hors-ligne';
-  }
+.subcard {
+  background: #f8faf9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  margin-bottom: 15px;
 }
 
-function updateSessionsCountBadge() {
-  const sessions = getStoredSessions();
-  const badge = document.getElementById('sessions-counter');
-  if (badge) {
-    badge.textContent = sessions.length;
-    badge.style.display = sessions.length > 0 ? 'inline-flex' : 'none';
-  }
+/* ==========================================================================
+   FORMULAIRES & INPUTS
+   ========================================================================== */
+.form-group {
+  margin-bottom: 18px;
 }
 
-function showSuccessBanner(id) {
-  const banner = document.getElementById('success-banner');
-  if (document.getElementById('alert-session-id')) document.getElementById('alert-session-id').textContent = `REF: ${id}`;
-  if (banner) banner.style.display = 'block';
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+.req { color: #e74c3c; }
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  background-color: var(--surface);
+  color: var(--text-main);
+  transition: border-color 0.2s;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
 }
 
-window.hideSuccessBanner = function() { 
-  const banner = document.getElementById('success-banner');
-  if (banner) banner.style.display = 'none'; 
-};
+.font-mono { font-family: monospace; letter-spacing: 1px; font-size: 1.1rem; }
+.uppercase { text-transform: uppercase; }
 
-function showErrorBanner(errors) {
-  const banner = document.getElementById('error-banner');
-  const list = document.getElementById('error-list');
-  if (list) list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
-  if (banner) banner.style.display = 'block';
+.label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.badge-facultatif {
+  font-size: 0.7rem;
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #666;
 }
 
-function hideErrorBanner() { if (document.getElementById('error-banner')) document.getElementById('error-banner').style.display = 'none'; }
+.input-with-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-with-unit .form-control { padding-right: 90px; }
+.unit-tag {
+  position: absolute;
+  right: 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
 
-document.addEventListener('DOMContentLoaded', initApp);
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+.text-green { color: var(--primary-light) !important; font-weight: 500; }
+
+/* ==========================================================================
+   GRILLE DATE / HEURE
+   ========================================================================== */
+.date-time-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.info-pill {
+  background: #f1f3f5;
+  border: 1px solid #e9ecef;
+  padding: 10px 15px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+}
+.info-pill .label-mini {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.val-mono {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+/* ==========================================================================
+   GPS TERMINAL
+   ========================================================================== */
+.badge-gps {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.badge-gps-acquiring { background: #f39c12; color: white; }
+.badge-gps-ok { background: #27ae60; color: white; }
+.badge-gps-err { background: #e74c3c; color: white; }
+
+.gps-terminal {
+  background: #1e272e;
+  color: #4cd137;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+.gps-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 1rem; }
+.gps-row-small { display: flex; justify-content: space-between; font-size: 0.8rem; color: #a4b0be; }
+.gps-note { font-size: 0.8rem; color: #e74c3c; margin-top: 5px; }
+
+/* ==========================================================================
+   SÉLECTION RÉGLEMENTAIRE (RADIO CARDS)
+   ========================================================================== */
+.radio-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.radio-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+.radio-card.active {
+  border-color: var(--primary);
+  background-color: var(--secondary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.radio-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #f9f9f9;
+}
+.card-title-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.card-title-row strong { font-size: 0.9rem; }
+.card-desc { font-size: 0.7rem; color: var(--text-muted); line-height: 1.2; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.dot-vl { background: var(--vl-color); }
+.dot-mfr { background: var(--mfr-color); }
+.dot-both { background: linear-gradient(135deg, var(--vl-color) 50%, var(--mfr-color) 50%); }
+
+.reg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.badge-locked { font-size: 0.75rem; background: #e74c3c; color: white; padding: 3px 8px; border-radius: 12px; }
+.notice-info { background: #e8f4fd; color: #2980b9; padding: 10px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 12px; border-left: 4px solid #3498db; }
+
+/* ==========================================================================
+   BOUTONS & TOGGLES
+   ========================================================================== */
+.btn-primary-small { background: var(--primary-light); color: white; border: none; padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.btn-primary-small:hover { background: #40916c; }
+
+.btn-touch { flex: 1; padding: 10px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; border: 1px solid transparent; }
+.btn-outline { background: transparent; border-color: var(--primary-light); color: var(--primary-light); }
+.btn-outline:active { background: var(--secondary); }
+.btn-warning-soft { background: #fcf3cf; color: #b9770e; border-color: #f8c471; }
+.btn-group-row { display: flex; gap: 10px; }
+
+.btn-text-link { background: none; border: none; color: var(--primary-light); font-size: 0.85rem; text-decoration: underline; cursor: pointer; font-weight: 600; }
+.btn-text-link:active { color: var(--primary); }
+
+.button-toggle-group { display: flex; gap: 5px; margin-top: 8px; }
+.btn-toggle { flex: 1; padding: 10px; background: white; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+.btn-toggle.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: bold; }
+
+.quick-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 6px 12px; border-radius: 15px; border: 1px solid var(--border); background: white; font-size: 0.85rem; cursor: pointer; color: var(--text-muted); }
+.chip.active { background: var(--primary-light); color: white; border-color: var(--primary-light); }
+.btn-chip { background: #eee; border: none; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; cursor: pointer; }
+.btn-chip:active { background: #ddd; }
+.chip-code { font-family: monospace; background: var(--mfr-bg); color: var(--mfr-color); border: 1px solid rgba(211, 84, 0, 0.2); }
+
+.mfr-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.mfr-btn { background: white; border: 1px solid var(--border); padding: 10px; border-radius: 8px; text-align: left; cursor: pointer; display: flex; flex-direction: column; }
+.mfr-btn.active { border-color: var(--mfr-color); background: var(--mfr-bg); box-shadow: 0 0 0 1px var(--mfr-color); }
+.mfr-btn strong { color: var(--text-main); font-size: 0.95rem; }
+.mfr-btn small { color: var(--text-muted); font-size: 0.75rem; }
+
+/* ==========================================================================
+   COMPTEUR (STEPPER)
+   ========================================================================== */
+.stepper-box { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+.btn-stepper { width: 50px; height: 50px; background: #f8faf9; border: none; font-size: 1.5rem; color: var(--primary); cursor: pointer; }
+.btn-stepper:active { background: #e9ecef; }
+.btn-stepper-plus { background: var(--secondary); }
+.stepper-value { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.counter-num { font-size: 1.4rem; font-weight: bold; font-family: monospace; }
+.counter-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+
+.counter-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.badge-threshold { font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; font-weight: bold; }
+.badge-threshold.invalid { background: #fdedec; color: #c0392b; border: 1px solid #fadbd8; }
+.badge-threshold.valid { background: #eafaf1; color: #27ae60; border: 1px solid #d5f5e3; }
+
+/* ==========================================================================
+   CHECKBOX CUSTOM
+   ========================================================================== */
+.checkbox-card { background: #fcf3cf; border: 1px solid #f1c40f; border-radius: var(--radius-sm); padding: 15px; }
+.custom-checkbox { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.custom-checkbox input { display: none; }
+.checkbox-box { width: 24px; height: 24px; border: 2px solid #d4ac0d; border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.custom-checkbox input:checked + .checkbox-box { background: #d4ac0d; }
+.custom-checkbox input:checked + .checkbox-box::after { content: "✓"; color: white; font-weight: bold; }
+.checkbox-text { display: flex; flex-direction: column; }
+.checkbox-text strong { font-size: 0.9rem; color: #7d6608; }
+.checkbox-text small { font-size: 0.8rem; color: #9a7d0a; margin-top: 2px; }
+
+/* ==========================================================================
+   BARRE FLOTTANTE (SAUVEGARDE)
+   ========================================================================== */
+.floating-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  padding: 15px;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+  z-index: 90;
+}
+.floating-bar-inner { max-width: 800px; margin: 0 auto; }
+.btn-save-floating {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(27, 67, 50, 0.3);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.btn-save-floating:active { transform: scale(0.98); }
+
+/* ==========================================================================
+   MODALES ET ALERTES
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-card {
+  background: white;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+.modal-header-title { display: flex; gap: 12px; }
+.modal-icon { font-size: 2rem; }
+.modal-header h3 { margin: 0 0 4px 0; font-size: 1.2rem; }
+.modal-header p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+.btn-icon-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; padding: 0 5px; }
+
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; background: #f8faf9; border-radius: 0 0 var(--radius) var(--radius); }
+.btn-primary-action, .btn-secondary-action { padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; border: none; }
+.btn-primary-action { background: var(--primary); color: white; }
+.btn-secondary-action { background: #e0e6ed; color: var(--text-main); }
+
+.alert-success, .alert-error {
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 15px;
+  box-shadow: var(--shadow);
+}
+.alert-success { background: #eafaf1; border: 1px solid #a9dfbf; }
+.alert-error { background: #fdedec; border: 1px solid #f5b7b1; }
+.alert-icon { font-size: 1.5rem; }
+.alert-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.alert-success h3 { color: #1e8449; font-size: 1.05rem; margin: 0; }
+.alert-success p { color: #27ae60; font-size: 0.9rem; margin-bottom: 10px; }
+.alert-error h4 { color: #c0392b; margin: 0 0 5px 0; }
+.alert-error ul { color: #e74c3c; font-size: 0.9rem; padding-left: 20px; margin: 0; }
+
+.alert-meta { display: flex; gap: 10px; font-size: 0.8rem; color: #2ecc71; margin-bottom: 15px; flex-wrap: wrap; }
+.code-pill { background: rgba(255,255,255,0.7); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; border: 1px solid #a9dfbf; }
+.alert-buttons { display: flex; gap: 10px; }
+.btn-secondary-white { background: white; border: 1px solid #a9dfbf; color: #27ae60; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+.btn-primary-white { background: #27ae60; border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+
+/* ==========================================================================
+   INSPECTEUR JSON
+   ========================================================================== */
+.json-inspector { background: #2c3e50; border-radius: var(--radius-sm); margin-top: 20px; overflow: hidden; }
+.json-header { background: #34495e; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; color: white; }
+.json-header strong { font-size: 0.9rem; font-family: monospace; }
+.json-actions { display: flex; gap: 8px; }
+.btn-small { background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; }
+.btn-small:hover { background: rgba(255,255,255,0.2); }
+.btn-primary-mini { background: var(--primary); }
+pre#json-content { padding: 15px; color: #a6e22e; font-family: monospace; font-size: 0.85rem; overflow-x: auto; margin: 0; line-height: 1.4; max-height: 400px; overflow-y: auto; }
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Mobiles)
+   ========================================================================== */
+@media (max-width: 600px) {
+  .radio-cards-grid { grid-template-columns: 1fr; }
+  .radio-card { flex-direction: row; justify-content: flex-start; text-align: left; gap: 15px; padding: 15px; }
+  .card-title-row { flex-direction: row; margin-bottom: 0; }
+  .date-time-grid { grid-template-columns: 1fr; gap: 10px; }
+  .hide-mobile { display: none; }
+  .mfr-cards-grid { grid-template-columns: 1fr; }
+  .alert-buttons { flex-direction: column; }
+              }
+                             
